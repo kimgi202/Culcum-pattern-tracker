@@ -155,6 +155,15 @@ button:active{opacity:.75;}
 .btn-primary{background:var(--sage); color:#fff;}
 .btn-ghost{background:#fff; color:var(--ink); border-color:var(--line);}
 .btn-coral{background:var(--coral); color:#fff;}
+.btn-check{
+  background:var(--ink); color:#fff; width:100%;
+}
+.btn-row.check-row{margin-top:14px; border-top:1px dashed var(--line); padding-top:14px;}
+.copy-toast{
+  margin-top:8px; text-align:center; font-size:11.5px; color:var(--sage); font-weight:600;
+  opacity:0; height:0; overflow:hidden; transition:opacity .2s;
+}
+.copy-toast.show{opacity:1; height:auto;}
 
 .checkpoint{
   margin-top:20px; background:var(--card); border:1px solid var(--line);
@@ -188,6 +197,63 @@ button:active{opacity:.75;}
 
 .footer-note{text-align:center; font-size:11px; color:var(--muted-2); margin-top:22px; line-height:1.6;}
 .hidden{display:none !important;}
+
+.add-note-form{padding-top:10px;}
+.add-note-form input, .add-note-form textarea{
+  width:100%; background:#fff; border:1px solid var(--line); border-radius:6px;
+  padding:9px 11px; font-family:'Pretendard Variable',sans-serif; font-size:13px;
+  color:var(--ink); margin-bottom:8px;
+}
+.add-note-form textarea{min-height:64px; resize:vertical;}
+.add-note-form input::placeholder, .add-note-form textarea::placeholder{color:var(--muted-2);}
+
+.note-item{
+  background:var(--card-back); border:1px solid var(--line); border-radius:7px;
+  padding:11px 13px; margin-top:10px; position:relative;
+}
+.note-title{font-size:12.5px; font-weight:700; color:var(--coral); padding-right:20px;}
+.note-body{font-size:12px; color:var(--ink); margin-top:5px; line-height:1.6; white-space:pre-wrap;}
+.note-date{font-size:10px; color:var(--muted-2); margin-top:6px; font-family:'IBM Plex Mono',monospace;}
+.note-del{
+  position:absolute; top:9px; right:10px; cursor:pointer; color:var(--muted-2);
+  font-size:14px; line-height:1; background:none; border:none; padding:2px;
+}
+.note-del:hover{color:var(--coral);}
+.notes-empty{font-size:12px; color:var(--muted-2); text-align:center; padding:14px 0;}
+
+.compare-panel{
+  margin-top:14px; background:#F3EEE4; border:1px solid var(--line);
+  border-radius:8px; padding:14px 16px;
+}
+.compare-head{font-size:12.5px; font-weight:700; color:var(--ink);}
+.compare-hint{font-size:11px; color:var(--muted); margin-top:4px; margin-bottom:8px; line-height:1.5;}
+.corrected-input{
+  width:100%; min-height:50px; background:#fff; border:1px solid var(--line);
+  border-radius:6px; padding:9px 11px; font-family:'Pretendard Variable',sans-serif;
+  font-size:13px; color:var(--ink); resize:vertical;
+}
+.corrected-input::placeholder{color:var(--muted-2);}
+.compare-list{margin-top:4px;}
+.compare-item{
+  background:#fff; border:1px solid var(--line); border-radius:7px;
+  padding:11px 13px; margin-top:10px; position:relative;
+}
+.compare-row{font-size:12.5px; line-height:1.6; padding:3px 0;}
+.compare-tag{
+  display:inline-block; font-size:10px; font-weight:700; border-radius:4px;
+  padding:1px 6px; margin-right:6px; vertical-align:1px;
+}
+.compare-mine .compare-tag{background:rgba(222,91,69,0.12); color:var(--coral);}
+.compare-fixed .compare-tag{background:rgba(95,130,103,0.14); color:var(--sage);}
+.compare-mine{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--muted-2);}
+.compare-fixed{color:var(--ink); font-weight:600;}
+.compare-date{font-size:10px; color:var(--muted-2); margin-top:6px; font-family:'IBM Plex Mono',monospace;}
+.compare-del{
+  position:absolute; top:9px; right:10px; cursor:pointer; color:var(--muted-2);
+  font-size:14px; line-height:1; background:none; border:none; padding:2px;
+}
+.compare-del:hover{color:var(--coral);}
+.compare-empty{font-size:12px; color:var(--muted-2); text-align:center; padding:10px 0;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -254,6 +320,23 @@ button:active{opacity:.75;}
       <div class="cp-item"><b>목적의 to부정사</b> — "~하기 위해서"는 to + 동사원형만. at/when/while로 대체 불가.</div>
       <div class="cp-item"><b>feel + 형용사</b> — feel 뒤엔 항상 형용사 (동사원형/명사 X).</div>
       <div class="cp-item"><b>감정 단어 + 이유</b> — curious, excited, worried 등은 about/because로 대상·이유를 붙여야 자연스러움.</div>
+    </div>
+  </div>
+
+  <div class="checkpoint">
+    <div class="checkpoint-head" id="notesHead">
+      <div class="checkpoint-title">📝 나의 메타인지 노트 (<span id="notesCount">0</span>개)</div>
+      <div class="chev open" id="notesChev">▶</div>
+    </div>
+    <div class="checkpoint-body open" id="notesBody">
+      <div id="addNoteForm" class="add-note-form">
+        <input type="text" id="noteTitle" placeholder="제목 (예: if절 + had+p.p. 짝 맞추기)">
+        <textarea id="noteBody" placeholder="Claude가 준 설명 붙여넣기 or 직접 요약해서 쓰기"></textarea>
+        <div class="btn-row">
+          <button class="btn-primary" id="btnSaveNote">저장</button>
+        </div>
+      </div>
+      <div id="notesList"></div>
     </div>
   </div>
 
@@ -465,7 +548,7 @@ try{
   console.error("Supabase client init failed — falling back to local-only mode", e);
 }
 
-let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0 };
+let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0, notes:[], corrections:{} };
 let mode = "unit"; // "unit" | "random"
 let currentUnitIndex = 0;
 
@@ -489,6 +572,8 @@ async function loadState(){
       state.todayCount = data.today_count || 0;
       state.currentId = data.current_id || 1;
       state.ihTotal = data.ih_total || 0;
+      state.notes = data.notes || [];
+      state.corrections = data.corrections || {};
     }
   }catch(e){ console.error("load failed", e); }
   if(state.todayDate !== todayISO()){
@@ -509,6 +594,8 @@ async function saveState(){
         today_count: state.todayCount,
         current_id: state.currentId,
         ih_total: state.ihTotal,
+        notes: state.notes,
+        corrections: state.corrections,
         updated_at: new Date().toISOString()
       });
     if(error) throw error;
@@ -555,6 +642,20 @@ function buildCard(p){
         <button class="btn-coral" data-act="ih-done">IH 확장 완료 (+1)</button>
       </div>
     </div>
+    <div class="btn-row check-row">
+      <button class="btn-check" data-act="copy-check">📋 Claude 검수 요청 복사</button>
+    </div>
+    <div class="copy-toast" data-toast>복사됐어요! Claude 앱/채팅에 붙여넣어 보세요 ✅</div>
+
+    <div class="compare-panel">
+      <div class="compare-head">✏️ Claude 교정 비교</div>
+      <div class="compare-hint">Claude가 준 교정 문장을 붙여넣으면, 방금 쓴 내 문장이랑 나란히 저장돼요.</div>
+      <textarea class="corrected-input" placeholder="Claude 교정본을 여기에 붙여넣기"></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" data-act="save-compare">비교 저장</button>
+      </div>
+      <div class="compare-list" data-compare-list></div>
+    </div>
   `;
   wrap.querySelector('[data-act="examples"]').addEventListener('click', ()=>{
     wrap.querySelector('[data-examples]').classList.toggle('show');
@@ -564,7 +665,65 @@ function buildCard(p){
     wrap.querySelector('[data-count]').textContent = `${state.counts[p.id]}회 연습`;
   });
   wrap.querySelector('[data-act="ih-done"]').addEventListener('click', markIhDone);
+  wrap.querySelector('[data-act="copy-check"]').addEventListener('click', ()=>{
+    const attemptText = wrap.querySelectorAll('.attempt')[0].value.trim();
+    const ihText = wrap.querySelectorAll('.attempt')[1].value.trim();
+    let msg = `아래 영작 문장 검수 부탁해! (오늘 컬컴 패턴 연습)\n\n`;
+    msg += `패턴 ${p.id}: ${p.en} (${p.kr})\n`;
+    msg += `내 문장: ${attemptText || "(아직 안 씀)"}\n`;
+    if(ihText) msg += `IH 확장 시도: ${ihText}\n`;
+    msg += `\n문법 오류 있으면 짚어주고, 더 자연스러운 표현 있으면 알려줘!`;
+    navigator.clipboard.writeText(msg).then(()=>{
+      const toast = wrap.querySelector('[data-toast]');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }).catch(()=>{
+      alert('복사에 실패했어요. 직접 선택해서 복사해주세요:\n\n' + msg);
+    });
+  });
+  renderCompareList(wrap, p.id);
+  wrap.querySelector('[data-act="save-compare"]').addEventListener('click', ()=>{
+    const mine = wrap.querySelectorAll('.attempt')[0].value.trim();
+    const correctedEl = wrap.querySelector('.corrected-input');
+    const corrected = correctedEl.value.trim();
+    if(!mine || !corrected) return;
+    if(!state.corrections[p.id]) state.corrections[p.id] = [];
+    state.corrections[p.id].push({
+      mine, corrected, savedAt: new Date().toISOString()
+    });
+    correctedEl.value = '';
+    renderCompareList(wrap, p.id);
+    saveState();
+  });
   return wrap;
+}
+
+function renderCompareList(wrap, patternId){
+  const listEl = wrap.querySelector('[data-compare-list]');
+  const items = state.corrections[patternId] || [];
+  if(items.length === 0){
+    listEl.innerHTML = '<div class="compare-empty">아직 저장된 비교가 없어요.</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  [...items].reverse().forEach((item, idxFromEnd)=>{
+    const realIdx = items.length - 1 - idxFromEnd;
+    const dateStr = new Date(item.savedAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+    const box = document.createElement('div');
+    box.className = 'compare-item';
+    box.innerHTML = `
+      <button class="compare-del" data-idx="${realIdx}">×</button>
+      <div class="compare-row compare-mine"><span class="compare-tag">❌ 내 문장</span>${item.mine}</div>
+      <div class="compare-row compare-fixed"><span class="compare-tag">✅ 교정본</span>${item.corrected}</div>
+      <div class="compare-date">${dateStr}</div>
+    `;
+    box.querySelector('.compare-del').addEventListener('click', ()=>{
+      state.corrections[patternId].splice(realIdx, 1);
+      renderCompareList(wrap, patternId);
+      saveState();
+    });
+    listEl.appendChild(box);
+  });
 }
 
 // ---- UNIT MODE ----
@@ -682,6 +841,57 @@ document.getElementById('cpHead').addEventListener('click', ()=>{
   document.getElementById('cpChev').classList.toggle('open');
 });
 
+document.getElementById('notesHead').addEventListener('click', ()=>{
+  document.getElementById('notesBody').classList.toggle('open');
+  document.getElementById('notesChev').classList.toggle('open');
+});
+
+function renderNotes(){
+  document.getElementById('notesCount').textContent = state.notes.length;
+  const list = document.getElementById('notesList');
+  list.innerHTML = '';
+  if(state.notes.length === 0){
+    list.innerHTML = '<div class="notes-empty">아직 저장된 노트가 없어요. 위에서 추가해보세요!</div>';
+    return;
+  }
+  // 최신순으로 표시
+  [...state.notes].reverse().forEach(note=>{
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    const dateStr = new Date(note.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+    item.innerHTML = `
+      <button class="note-del" data-id="${note.id}">×</button>
+      <div class="note-title">${note.title}</div>
+      <div class="note-body">${note.body}</div>
+      <div class="note-date">${dateStr}</div>
+    `;
+    item.querySelector('.note-del').addEventListener('click', ()=>{
+      state.notes = state.notes.filter(n => n.id !== note.id);
+      renderNotes();
+      saveState();
+    });
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('btnSaveNote').addEventListener('click', ()=>{
+  const titleEl = document.getElementById('noteTitle');
+  const bodyEl = document.getElementById('noteBody');
+  const title = titleEl.value.trim();
+  const body = bodyEl.value.trim();
+  if(!title && !body) return;
+  state.notes.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    title: title || '(제목 없음)',
+    body,
+    createdAt: new Date().toISOString()
+  });
+  titleEl.value = '';
+  bodyEl.value = '';
+  renderNotes();
+  saveState();
+});
+
 function buildSpiral(){
   const el = document.getElementById('spiral');
   const count = Math.ceil(window.innerHeight / 46) + 2;
@@ -700,6 +910,7 @@ window.addEventListener('resize', buildSpiral);
   if(!PATTERNS.find(p=>p.id===state.currentId)) state.currentId = 1;
   renderStats();
   renderGrid();
+  renderNotes();
   setMode('unit');
 })();
 </script>
