@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>컬컴 패턴 카드</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+:root{
+  --bg: #FDECE0;
+  --card: #FFF8F2;
+  --card-back: #F6E4D3;
+  --ink: #33291F;
+  --muted: #8C7A68;
+  --muted-2: #B4A28E;
+  --sage: #5F8267;
+  --sage-dim: #B9CBBB;
+  --coral: #DE5B45;
+  --line: #E9D6C2;
+  --hole: #FDECE0;
+  --hole-ring: #D8C2AC;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Pretendard Variable','Pretendard',-apple-system,sans-serif;
+  min-height:100vh;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+.wrap{
+  max-width:640px; margin:0 auto;
+  padding:26px 18px 60px 40px;
+  position:relative;
+}
+
+/* spiral binder holes down the left, referencing the physical workbook */
+.spiral{
+  position:fixed; left:0; top:0; bottom:0; width:34px;
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:flex-start; gap:22px; padding-top:40px;
+  pointer-events:none;
+}
+.spiral .hole{
+  width:14px; height:14px; border-radius:50%;
+  background:var(--hole);
+  box-shadow: inset 0 0 0 2px var(--hole-ring), 2px 2px 4px rgba(0,0,0,0.06);
+}
+
+/* header */
+.title-row{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;}
+.title{font-size:22px; font-weight:800; letter-spacing:-.01em;}
+.subtitle{font-size:12px; color:var(--muted); margin-top:3px;}
+.badge{
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600;
+  color:var(--coral); background:rgba(222,91,69,0.09);
+  border:1px solid rgba(222,91,69,0.25); border-radius:20px;
+  padding:4px 10px;
+}
+
+/* stats */
+.stats{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:6px;
+  overflow:hidden; margin-top:16px;
+}
+.stat{background:var(--card); text-align:center; padding:12px 4px;}
+.stat-num{font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700;}
+.stat-num.hi{color:var(--sage);}
+.stat-label{font-size:9px; color:var(--muted); margin-top:2px; line-height:1.3;}
+
+/* card */
+.deck{margin-top:22px; position:relative;}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow: 0 3px 0 var(--card-back), 0 8px 20px rgba(90,60,30,0.08);
+  padding:20px 22px 22px;
+}
+.card-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;}
+.card-num{
+  font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700;
+  color:#fff; background:var(--sage);
+  border-radius:5px; padding:3px 9px;
+}
+.card-count{font-size:11px; color:var(--muted-2);}
+.pattern-en{font-size:18px; font-weight:700; color:var(--ink); line-height:1.4;}
+.pattern-kr{font-size:13px; color:var(--coral); font-weight:600; margin-top:5px;}
+
+textarea.attempt{
+  width:100%; margin-top:16px; min-height:64px;
+  background:#fff; border:1px solid var(--line); border-radius:6px;
+  padding:10px 12px; font-family:'Pretendard Variable',sans-serif;
+  font-size:13.5px; color:var(--ink); resize:vertical;
+}
+textarea.attempt::placeholder{color:var(--muted-2);}
+
+.examples{
+  margin-top:14px; display:none; border-top:1px dashed var(--line); padding-top:14px;
+}
+.examples.show{display:block;}
+.ex-item{margin-bottom:10px; padding-left:10px; border-left:2px solid var(--sage-dim);}
+.ex-en{font-size:13px; font-weight:600;}
+.ex-kr{font-size:12px; color:var(--muted); margin-top:2px;}
+
+.btn-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;}
+.btn-row.next-row{margin-top:14px; border-top:1px dashed var(--line); padding-top:14px;}
+
+.ih-panel{
+  margin-top:16px; background:var(--card-back); border:1px solid var(--line);
+  border-radius:8px; padding:14px 16px;
+}
+.ih-head{font-size:12.5px; font-weight:700; color:var(--ink);}
+.ih-step{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700;
+  color:#fff; background:var(--coral); border-radius:4px; padding:2px 6px;
+  margin-right:6px;
+}
+.ih-hint{font-size:11px; color:var(--muted); margin-top:6px; line-height:1.5;}
+.ih-textarea{background:#fff;}
+button{
+  font-family:'Pretendard Variable',sans-serif; font-size:12.5px; font-weight:600;
+  border-radius:6px; padding:9px 14px; cursor:pointer; border:1px solid transparent;
+  transition:opacity .15s;
+}
+button:active{opacity:.75;}
+.btn-primary{background:var(--sage); color:#fff;}
+.btn-ghost{background:#fff; color:var(--ink); border-color:var(--line);}
+.btn-coral{background:var(--coral); color:#fff;}
+
+/* checkpoint panel */
+.checkpoint{
+  margin-top:20px; background:var(--card); border:1px solid var(--line);
+  border-radius:8px; overflow:hidden;
+}
+.checkpoint-head{
+  padding:12px 16px; display:flex; justify-content:space-between; align-items:center;
+  cursor:pointer; user-select:none;
+}
+.checkpoint-title{font-size:13px; font-weight:700;}
+.chev{font-size:11px; color:var(--muted); transition:transform .2s;}
+.chev.open{transform:rotate(90deg);}
+.checkpoint-body{display:none; padding:0 16px 14px;}
+.checkpoint-body.open{display:block;}
+.cp-item{font-size:12px; line-height:1.6; padding:7px 0; border-top:1px solid var(--line);}
+.cp-item b{color:var(--sage);}
+
+/* progress grid */
+.grid-title{font-size:12.5px; font-weight:700; margin:20px 0 8px; color:var(--muted);}
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(30px,1fr)); gap:5px;
+}
+.tile{
+  aspect-ratio:1; border-radius:4px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:600;
+  color:var(--muted); background:var(--card); border:1px solid var(--line);
+}
+.tile.p1{background:#E4EFE5; color:var(--sage); border-color:var(--sage-dim);}
+.tile.p2{background:#C9DECB; color:#3d5941; border-color:var(--sage);}
+.tile.p3plus{background:var(--sage); color:#fff; border-color:var(--sage);}
+
+.footer-note{text-align:center; font-size:11px; color:var(--muted-2); margin-top:22px; line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="spiral" id="spiral"></div>
+
+<div class="wrap">
+  <div class="title-row">
+    <div>
+      <div class="title">컬컴 패턴 카드</div>
+      <div class="subtitle">무작위 패턴 뽑기 · 자유 영작 · 예문 확인</div>
+    </div>
+    <div class="badge">40+2과</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num hi mono" id="statToday">0</div>
+      <div class="stat-label">오늘 뽑은 카드</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num mono" id="statTotal">0</div>
+      <div class="stat-label">누적 연습</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num mono" id="statIH">0</div>
+      <div class="stat-label">IH 확장 완료</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num mono" id="statCoverage">0/42</div>
+      <div class="stat-label">패턴 커버리지</div>
+    </div>
+  </div>
+
+  <div class="deck">
+    <div class="card" id="cardEl">
+      <div class="card-top">
+        <div class="card-num mono" id="cardNum">1</div>
+        <div class="card-count mono" id="cardCount">0회 연습</div>
+      </div>
+      <div class="pattern-en" id="patternEn">-</div>
+      <div class="pattern-kr" id="patternKr">-</div>
+
+      <textarea class="attempt" id="attemptBox" placeholder="이 패턴으로 자유롭게 영작해보세요..."></textarea>
+
+      <div class="btn-row">
+        <button class="btn-ghost" id="btnExamples">예문 보기</button>
+        <button class="btn-primary" id="btnDone">완료 (연습 횟수 +1)</button>
+      </div>
+
+      <div class="examples" id="examplesBox"></div>
+
+      <div class="ih-panel">
+        <div class="ih-head">
+          <span class="ih-step">STEP 2</span> IH 확장 — 위 문장에 이유·의미 붙이기
+        </div>
+        <div class="ih-hint">감정 단어(curious, worried, excited 등) 있으면 about/because로 대상·이유 붙었는지 체크!</div>
+        <textarea class="attempt ih-textarea" id="ihBox" placeholder="위 문장을 which is ~ / because ~ / so having ~ is ~ 로 확장해보세요"></textarea>
+        <div class="btn-row">
+          <button class="btn-coral" id="btnIhDone">IH 확장 완료 (+1)</button>
+        </div>
+      </div>
+
+      <div class="btn-row next-row">
+        <button class="btn-ghost" id="btnNext">다음 카드 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="checkpoint">
+    <div class="checkpoint-head" id="cpHead">
+      <div class="checkpoint-title">✅ 확장 체크포인트 (오늘 정리한 것)</div>
+      <div class="chev" id="cpChev">▶</div>
+    </div>
+    <div class="checkpoint-body" id="cpBody">
+      <div class="cp-item"><b>should have + p.p.</b> — have 뒤엔 반드시 과거분사(원형 X). would have는 if절 필수, should have는 단독 후회.</div>
+      <div class="cp-item"><b>동명사구 주어 vs While + 동명사</b> — 동명사가 주어면 While 없이 단독으로.</div>
+      <div class="cp-item"><b>목적의 to부정사</b> — "~하기 위해서"는 to + 동사원형만. at/when/while로 대체 불가.</div>
+      <div class="cp-item"><b>feel + 형용사</b> — feel 뒤엔 항상 형용사 (동사원형/명사 X).</div>
+      <div class="cp-item"><b>감정 단어 + 이유</b> — curious, excited, worried 등은 about/because로 대상·이유를 붙여야 자연스러움.</div>
+    </div>
+  </div>
+
+  <div class="grid-title">패턴 커버리지 (진하면 많이 연습한 패턴)</div>
+  <div class="grid" id="progressGrid"></div>
+
+  <div class="footer-note">완벽한 문장이 아니어도 괜찮아요. 일단 써보고, 예문이랑 비교하는 게 핵심이에요.</div>
+</div>
+
+<script>
+const PATTERNS = [
+  {id:1, en:"be (not) supposed to + 동사", kr:"~하기로 되어 있어요 / ~하면 안 돼요", ex:[
+    {en:"I am supposed to meet Tom tonight.", kr:"오늘 밤에 톰을 만나야 해요."},
+    {en:"You are not supposed to smoke or drink here.", kr:"여기서 담배를 피우거나 술을 드시면 안 돼요."}]},
+  {id:2, en:"I want you to + 동사", kr:"당신이 ~하면 좋겠어요", ex:[
+    {en:"I want you to listen to what I say.", kr:"당신이 내가 하는 말 좀 들었으면 해요."},
+    {en:"I want him to work harder.", kr:"그가 일을 더 열심히 하길 원해요."}]},
+  {id:3, en:"Why do you + 동사?", kr:"왜 당신은 ~하나요?", ex:[
+    {en:"Why do you think I am that much easy?", kr:"왜 내가 그렇게 쉽다고 생각하나요?"},
+    {en:"Why do you always lie to me?", kr:"왜 항상 내게 거짓말을 하나요?"}]},
+  {id:4, en:"Too 형용사 to 동사", kr:"너무 ~해서 ~못하겠어요", ex:[
+    {en:"I am too tired to listen to your nonsense.", kr:"너무 피곤해서 당신의 헛소리를 들어 줄 수가 없네요."},
+    {en:"He is too disappointed to accept my apology.", kr:"그는 너무 실망해서 제 사과를 받아들일 수 없어요."}]},
+  {id:5, en:"관계대명사 (who/that/which/where/when/why)", kr:"[문장의 형태로] (명사)", ex:[
+    {en:"I have a coworker who always brings snacks to the office.", kr:"나는 사무실에 항상 간식을 가져오는 동료가 있어요."},
+    {en:"This is the phone that takes clear photos.", kr:"이건 사진이 잘 찍히는 핸드폰이에요."}]},
+  {id:6, en:"I'm worried about + 명사/동사ing / that + 주어+동사", kr:"~이 걱정돼요 / ~할까 걱정돼요", ex:[
+    {en:"I'm worried about what happened last night.", kr:"어젯밤 무슨 일이 있었는지 걱정이에요."},
+    {en:"I'm worried that he won't get a taxi.", kr:"그가 택시를 못 잡을까 걱정이에요."}]},
+  {id:7, en:"I'm afraid of + 명사/동사ing / that + 주어+동사", kr:"~가 두려워요 / ~일 것 같아요(유감)", ex:[
+    {en:"I'm afraid of new changes.", kr:"새로운 변화가 두려워요."},
+    {en:"I'm afraid that I can't make it today.", kr:"오늘 못 갈 것 같아요."}]},
+  {id:8, en:"I'm heading (out) to / on ... way to", kr:"~로 가는 길이에요", ex:[
+    {en:"I'm heading out to you.", kr:"당신에게 가는 중이에요."},
+    {en:"It's on the way to the station.", kr:"역으로 가는 길에 있어요."}]},
+  {id:9, en:"Would you mind + 명사/동사ing? / If you don't mind", kr:"해 주시겠어요? / 해도 될까요?", ex:[
+    {en:"Would you mind leaving us alone?", kr:"저희만 있게 자리 좀 피해주시겠어요?"},
+    {en:"If you don't mind, can you do me a favor?", kr:"실례지만 제 부탁 좀 들어주시겠어요?"}]},
+  {id:10, en:"What if + 주어 + 동사?", kr:"만약 ~라면 어쩌죠?", ex:[
+    {en:"What if it rains tomorrow?", kr:"내일 비가 오면 어쩌죠?"},
+    {en:"What if he changes his mind?", kr:"그가 변심하면 어쩌죠?"}]},
+  {id:11, en:"So 형용사 that ~ / ... so that ~", kr:"얼마나 ~했는지 ~했어요 / ~하기 위해서", ex:[
+    {en:"I was so surprised that I forgot what to say.", kr:"얼마나 놀랐던지 뭐라고 해야 할지 잊어버렸어요."},
+    {en:"I will turn my phone off, so that I can focus on it.", kr:"집중할 수 있게 폰을 끌게요."}]},
+  {id:12, en:"I appreciate that / your + 명사", kr:"~해 주셔서 감사합니다", ex:[
+    {en:"I appreciate your concern.", kr:"걱정해 주셔서 고마워요."},
+    {en:"I appreciate that you are always there for me.", kr:"항상 내 곁에 있어줘서 고마워요."}]},
+  {id:13, en:"I'm not interested in + 명사/동사ing", kr:"~에 관심이 없어요", ex:[
+    {en:"I'm not interested in working out.", kr:"운동하는 것에 관심이 없어요."},
+    {en:"I'm not interested in what people think.", kr:"사람들이 어떻게 생각하든 관심 없어요."}]},
+  {id:14, en:"I ended up ~ing", kr:"결국 ~하게 됐어요", ex:[
+    {en:"I ended up breaking up with him.", kr:"결국 그와 헤어졌어요."},
+    {en:"I ended up liking what I do.", kr:"결국 제가 하는 일을 좋아하게 됐어요."}]},
+  {id:15, en:"How long have you been ~? / How long has it been since ~?", kr:"~한 지 얼마나 됐나요?", ex:[
+    {en:"How long have you been dating?", kr:"연애한 지 얼마나 됐나요?"},
+    {en:"How long has it been since you two broke up?", kr:"두 분은 헤어진 지 얼마나 됐나요?"}]},
+  {id:16, en:"I don't care about / what / if", kr:"~에 상관하지(신경쓰지) 않아요", ex:[
+    {en:"I don't care about the cost.", kr:"가격은 상관하지 않아요."},
+    {en:"I don't care if you don't agree with me.", kr:"저의 말에 동의하지 않아도 상관없어요."}]},
+  {id:17, en:"I used to + 동사 / I am used to + 명사/동사ing", kr:"예전에 ~하곤 했어요 / ~에 익숙해요", ex:[
+    {en:"I used to be shy when I was a teenager.", kr:"10대일 때는 부끄러움이 많곤 했어요."},
+    {en:"I'm used to hot weather.", kr:"더운 날씨에 익숙해요."}]},
+  {id:18, en:"I'm thinking of ~ing", kr:"~하는 것에 대해 생각 중이에요", ex:[
+    {en:"I'm thinking of asking her out.", kr:"그녀에게 고백을 할까 생각하고 있어요."},
+    {en:"I'm thinking of quitting my job.", kr:"일을 그만 둘까 생각하고 있어요."}]},
+  {id:19, en:"There are times when + 문장", kr:"~할 때가 있어요", ex:[
+    {en:"There are times when I want to be alone.", kr:"혼자 있고 싶을 때가 있어요."},
+    {en:"There are times when you can't trust anybody.", kr:"아무도 믿지 못할 것 같을 때가 있어요."}]},
+  {id:20, en:"Make sure + to동사 / 문장", kr:"꼭 ~하도록 하세요", ex:[
+    {en:"Make sure to wash your hands.", kr:"손을 꼭 씻도록 하세요."},
+    {en:"Make sure you write the address properly.", kr:"주소를 정확하게 적도록 하세요."}]},
+  {id:21, en:"I'm not going to + 동사 / I decided not to + 동사", kr:"~하지 않을 거예요 / ~하지 않기로 결심했어요", ex:[
+    {en:"I'm not going to believe what she says.", kr:"그녀가 한 말은 믿지 않을 거예요."},
+    {en:"I decided not to mention it.", kr:"그것은 언급하지 않기로 했어요."}]},
+  {id:22, en:"Is there any + 명사?", kr:"~가 있나요?", ex:[
+    {en:"Is there any chance?", kr:"가능성이 있나요?"},
+    {en:"Is there any way to contact him?", kr:"그와 연락할 방법이 있나요?"}]},
+  {id:23, en:"The thing(point) is (that)", kr:"문제는(중요한 것은) ~라는 거예요", ex:[
+    {en:"The thing is that she doesn't like you.", kr:"문제는 그녀가 당신을 좋아하지 않는다는 거예요."},
+    {en:"The thing is that we are different.", kr:"문제는 우리가 다르다는 거예요."}]},
+  {id:24, en:"I'm good at + 명사/동사ing", kr:"저는 ~를 잘해요", ex:[
+    {en:"I am good at dealing with people.", kr:"저는 사람들을 잘 다뤄요."},
+    {en:"I am good at swimming.", kr:"저는 수영을 잘 해요."}]},
+  {id:25, en:"I get(got) so upset when", kr:"~할 때 너무 화가 나요(났어요)", ex:[
+    {en:"I get so upset when people judge me.", kr:"사람들이 저를 판단할 때 너무 화가 나요."},
+    {en:"I got so upset when I saw him again.", kr:"그를 다시 봤을 때 너무 화가 났어요."}]},
+  {id:26, en:"be about to + 동사", kr:"막 ~하려던 참이에요", ex:[
+    {en:"I am about to explode!", kr:"막 폭발하기 직전이에요!"},
+    {en:"I was about to leave.", kr:"떠나려고 했었어요."}]},
+  {id:27, en:"I can't help but 동사 / I can't stop ~ing", kr:"저도 어쩔 수 없이 ~하게 돼요 / 계속 ~하게 돼요", ex:[
+    {en:"I can't help but think of her.", kr:"그녀 생각을 안 할 수 없어요."},
+    {en:"I can't stop eating chocolate.", kr:"초콜릿 먹는 걸 멈출 수 없어요."}]},
+  {id:28, en:"As I was saying / As I said before / As I mentioned earlier", kr:"앞서 말했듯이", ex:[
+    {en:"As I was saying, he is not my type of a guy.", kr:"앞서 말했듯 그는 제 타입이 아니에요."},
+    {en:"As I said before, I'll keep my promise.", kr:"앞서 말했듯 저는 약속을 지킬 거예요."}]},
+  {id:29, en:"That depends on + 명사/동사ing", kr:"그건 ~에 따라 달라요", ex:[
+    {en:"That depends on what it is.", kr:"그게 무엇이냐에 따라 다르죠."},
+    {en:"That depends on the person.", kr:"사람에 따라 다르죠."}]},
+  {id:30, en:"What I'm saying is (that)", kr:"제가 말하려는 것은 ~이라는 거예요", ex:[
+    {en:"What I'm saying is that I like you.", kr:"제가 하려는 말은 당신을 좋아한다는 거예요."},
+    {en:"What I'm saying is that we're alike.", kr:"제가 하려는 말은 우리가 비슷하다는 거예요."}]},
+  {id:31, en:"That's all + 주어 + 동사", kr:"~하는 것은 그게 다예요", ex:[
+    {en:"That's all I know.", kr:"그게 제가 아는 전부예요."},
+    {en:"That's all I can do.", kr:"제가 할 수 있는 건 그게 다예요."}]},
+  {id:32, en:"I hardly ever + 동사 / I always + 동사 / I ~ almost every day", kr:"~하는 적이 거의 없어요 / 항상(거의 매일) 해요", ex:[
+    {en:"I hardly ever cook at home.", kr:"집에서 요리를 거의 안 해요."},
+    {en:"I eat delivery food almost every day.", kr:"거의 매일 배달 음식을 먹어요."}]},
+  {id:33, en:"How many times have you + 과거분사?", kr:"몇 번이나 ~해 봤나요?", ex:[
+    {en:"How many times have you been to Japan?", kr:"일본에 몇 번 가 봤어요?"},
+    {en:"How many times have you lied to him?", kr:"그에게 몇 번이나 거짓말했어요?"}]},
+  {id:34, en:"How often do you + 동사?", kr:"얼마나 자주 ~하세요?", ex:[
+    {en:"How often do you exercise each week?", kr:"매주 운동을 얼마나 자주 하시나요?"},
+    {en:"How often do you go shopping?", kr:"얼마나 자주 쇼핑하세요?"}]},
+  {id:35, en:"This is the first time I've + 과거분사", kr:"~해 본 것은 처음이에요", ex:[
+    {en:"This is the first time I've visited here.", kr:"여기 와본 것은 이번이 처음이에요."},
+    {en:"This is the first time I've traveled abroad.", kr:"해외여행은 처음이에요."}]},
+  {id:36, en:"What made you + 동사/형용사?", kr:"어떤 계기로(이유로) ~하게 되었나요?", ex:[
+    {en:"What made you break up with her?", kr:"왜 그녀와 헤어진 거죠?"},
+    {en:"What made you fall in love with her?", kr:"왜 그녀에게 사랑에 빠지게 되었나요?"}]},
+  {id:37, en:"I was hoping to + 동사 / I was hoping that + 주어+동사", kr:"실은 ~하기를 바랐어요", ex:[
+    {en:"I was hoping to see you again.", kr:"당신을 다시 볼 수 있기를 바랐어요."},
+    {en:"I was hoping that you would call me.", kr:"당신이 전화 주기를 바랐어요."}]},
+  {id:38, en:"주어 + remind(s) me of + 명사", kr:"~는 나에게 ~를 생각나게 해요", ex:[
+    {en:"It reminds me of you.", kr:"그건 당신을 떠올리게 해요."},
+    {en:"It reminds me of my childhood memories.", kr:"저의 어린 시절 기억을 생각나게 해요."}]},
+  {id:39, en:"Must have + 과거분사 / Could have + 과거분사", kr:"~했음에 틀림없어요(추측) / ~할 수도 있었을 텐데요(가정)", ex:[
+    {en:"I must have been so drunk.", kr:"너무 취했었나 봐요."},
+    {en:"I could have done it by myself.", kr:"저 혼자도 할 수 있었을 거예요."}]},
+  {id:40, en:"Would have p.p / Should have p.p", kr:"~했을 텐데요(과거가정) / ~했어야 했어요(후회)", ex:[
+    {en:"I would have applied for the job.", kr:"그 회사에 지원했을 거예요."},
+    {en:"I should have told you that.", kr:"당신에게 그걸 말했어야 했어요."}]},
+  {id:41, en:"before/after + ~ing, as soon as + 절", kr:"~하기 전에(후에), ~하자마자", ex:[
+    {en:"Let's say something before drinking beer.", kr:"맥주 마시기 전에 뭔가 말하죠."},
+    {en:"I have a habit of turning on TV as soon as I get home.", kr:"집에 도착하자마자 TV를 켜는 습관이 있어요."}]},
+  {id:42, en:"Although / While / If 가정법 과거", kr:"~할지라도 / ~하는 동안(인 반면) / 지금 ~라면(현재 반대 가정)", ex:[
+    {en:"Although I failed the exam, I will keep trying.", kr:"시험에 실패했지만 계속 시도할 거예요."},
+    {en:"If I were you, I would choose red.", kr:"제가 당신이라면 빨간색으로 택할 거예요."}]},
+];
+
+const STORAGE_KEY = "culcom-pattern-drill-state";
+let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0 };
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      state = Object.assign(state, JSON.parse(res.value));
+    }
+  }catch(e){ /* first run */ }
+  if(state.todayDate !== todayISO()){
+    state.todayDate = todayISO();
+    state.todayCount = 0;
+  }
+}
+async function saveState(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
+  catch(e){ console.error("save failed", e); }
+}
+
+function weightedPick(excludeId){
+  const items = PATTERNS.filter(p => p.id !== excludeId);
+  const weights = items.map(p => 1 / Math.pow((state.counts[p.id]||0) + 1, 1.4));
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+  for(let i=0;i<items.length;i++){
+    r -= weights[i];
+    if(r <= 0) return items[i].id;
+  }
+  return items[items.length-1].id;
+}
+
+function renderCard(){
+  const p = PATTERNS.find(x => x.id === state.currentId);
+  document.getElementById('cardNum').textContent = p.id;
+  document.getElementById('cardCount').textContent = `${state.counts[p.id]||0}회 연습`;
+  document.getElementById('patternEn').textContent = p.en;
+  document.getElementById('patternKr').textContent = p.kr;
+  document.getElementById('attemptBox').value = '';
+  document.getElementById('ihBox').value = '';
+  const exBox = document.getElementById('examplesBox');
+  exBox.classList.remove('show');
+  exBox.innerHTML = p.ex.map(e => `
+    <div class="ex-item">
+      <div class="ex-en">${e.en}</div>
+      <div class="ex-kr">${e.kr}</div>
+    </div>`).join('');
+}
+
+function renderStats(){
+  document.getElementById('statToday').textContent = state.todayCount;
+  const total = Object.values(state.counts).reduce((a,b)=>a+b,0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statIH').textContent = state.ihTotal || 0;
+  const covered = Object.keys(state.counts).filter(k => state.counts[k] > 0).length;
+  document.getElementById('statCoverage').textContent = `${covered}/42`;
+}
+
+function renderGrid(){
+  const grid = document.getElementById('progressGrid');
+  grid.innerHTML = '';
+  PATTERNS.forEach(p=>{
+    const c = state.counts[p.id]||0;
+    const tile = document.createElement('div');
+    let cls = 'tile';
+    if(c===1) cls += ' p1';
+    else if(c===2) cls += ' p2';
+    else if(c>=3) cls += ' p3plus';
+    tile.className = cls;
+    tile.textContent = p.id;
+    tile.title = `${c}회 연습`;
+    tile.onclick = ()=>{
+      state.currentId = p.id;
+      renderCard();
+    };
+    grid.appendChild(tile);
+  });
+}
+
+function renderAll(){
+  renderCard();
+  renderStats();
+  renderGrid();
+}
+
+document.getElementById('btnExamples').addEventListener('click', ()=>{
+  document.getElementById('examplesBox').classList.toggle('show');
+});
+
+document.getElementById('btnDone').addEventListener('click', ()=>{
+  const id = state.currentId;
+  state.counts[id] = (state.counts[id]||0) + 1;
+  state.todayCount += 1;
+  renderStats();
+  renderGrid();
+  document.getElementById('cardCount').textContent = `${state.counts[id]} 회 연습`;
+  saveState();
+});
+
+document.getElementById('btnIhDone').addEventListener('click', ()=>{
+  state.ihTotal = (state.ihTotal || 0) + 1;
+  renderStats();
+  saveState();
+});
+
+document.getElementById('btnNext').addEventListener('click', ()=>{
+  state.currentId = weightedPick(state.currentId);
+  renderCard();
+  saveState();
+});
+
+document.getElementById('cpHead').addEventListener('click', ()=>{
+  document.getElementById('cpBody').classList.toggle('open');
+  document.getElementById('cpChev').classList.toggle('open');
+});
+
+// build spiral holes
+function buildSpiral(){
+  const el = document.getElementById('spiral');
+  const count = Math.ceil(window.innerHeight / 46) + 2;
+  el.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const h = document.createElement('div');
+    h.className = 'hole';
+    el.appendChild(h);
+  }
+}
+window.addEventListener('resize', buildSpiral);
+
+(async function init(){
+  buildSpiral();
+  await loadState();
+  if(!PATTERNS.find(p=>p.id===state.currentId)) state.currentId = 1;
+  renderAll();
+})();
+</script>
+</body>
+</html>
