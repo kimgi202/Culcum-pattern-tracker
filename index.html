@@ -77,6 +77,12 @@ body{
   font-size:11px; font-weight:600; padding:6px 10px; border-radius:5px;
   background:var(--sage); color:#fff; border:none; cursor:pointer; white-space:nowrap;
 }
+.quick-listen{
+  margin-top:10px; background:var(--card); border:1px solid var(--coral);
+  border-radius:8px; padding:12px 14px;
+}
+.quick-listen-head{font-size:12px; font-weight:700; color:var(--coral); margin-bottom:8px;}
+.quick-listen-box{min-height:50px; margin-top:0;}
 .mode-tab{
   flex:1; text-align:center; font-size:13px; font-weight:700; cursor:pointer;
   padding:10px 8px; border-radius:8px; border:1px solid var(--line);
@@ -310,6 +316,16 @@ button:active{opacity:.75;}
     <span class="voice-label">🔊 목소리</span>
     <select id="voiceSelect"><option>불러오는 중...</option></select>
     <button class="voice-test" id="voiceTest">미리듣기</button>
+  </div>
+
+  <div class="quick-listen">
+    <div class="quick-listen-head">🎧 빠른 듣기 — Claude가 준 교정 문장, 아무거나 붙여넣기</div>
+    <textarea class="attempt quick-listen-box" id="quickListenBox" placeholder="채팅에서 받은 교정 문장을 여기에 붙여넣으세요"></textarea>
+    <div class="speak-row">
+      <button class="speak-btn" id="quickSpeakBtn">🔊 듣고 따라 말하기</button>
+      <span class="repeat-counter" id="quickRepeatWrap"><span id="quickRepeatCount">0</span>/5</span>
+      <button class="repeat-btn" id="quickRepeatBtn">말했어요 +1</button>
+    </div>
   </div>
 
   <div class="stats">
@@ -1037,6 +1053,17 @@ document.getElementById('voiceSelect').addEventListener('change', (e)=>{
 });
 document.getElementById('voiceTest').addEventListener('click', ()=>{
   speakText("Hi, this is how I sound. I hope this helps with your speaking practice!");
+});
+document.getElementById('quickSpeakBtn').addEventListener('click', ()=>{
+  const text = document.getElementById('quickListenBox').value.trim();
+  if(text) speakText(text);
+});
+document.getElementById('quickRepeatBtn').addEventListener('click', ()=>{
+  const countEl = document.getElementById('quickRepeatCount');
+  const wrapEl = document.getElementById('quickRepeatWrap');
+  const n = parseInt(countEl.textContent) + 1;
+  countEl.textContent = n;
+  wrapEl.classList.toggle('done', n >= 5);
 });
 
 function wireRepeatCounter(scopeEl, speakBtnSel, wrapSel, countSel, repeatBtnSel, text){
