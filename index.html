@@ -167,6 +167,7 @@ button:active{opacity:.75;}
 
 .footer-note{text-align:center; font-size:11px; color:var(--muted-2); margin-top:22px; line-height:1.6;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -385,26 +386,55 @@ const PATTERNS = [
     {en:"If I were you, I would choose red.", kr:"제가 당신이라면 빨간색으로 택할 거예요."}]},
 ];
 
-const STORAGE_KEY = "culcom-pattern-drill-state";
+// ===== Supabase 설정 =====
+// 아래 두 값을 본인 Supabase 프로젝트의 Settings > API 값으로 교체하세요.
+const SUPABASE_URL = "https://yzyjqzumqtrvcwxqaeqn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6eWpxenVtcXRydmN3eHFhZXFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1Nzg3MjAsImV4cCI6MjA5OTE1NDcyMH0.INC_tAL5Dgvad0SqXRi_dCs3-LyeVXuMZa7oXdsj4XM";
+const ROW_ID = "ella-default";                  // 단일 사용자용 고정 row id
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0 };
 
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 
 async function loadState(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, false);
-    if(res && res.value){
-      state = Object.assign(state, JSON.parse(res.value));
+    const { data, error } = await supabase
+      .from('culcom_progress')
+      .select('*')
+      .eq('id', ROW_ID)
+      .maybeSingle();
+    if(error) throw error;
+    if(data){
+      state.counts = data.counts || {};
+      state.todayDate = data.today_date;
+      state.todayCount = data.today_count || 0;
+      state.currentId = data.current_id || 1;
+      state.ihTotal = data.ih_total || 0;
     }
-  }catch(e){ /* first run */ }
+  }catch(e){ console.error("load failed", e); }
   if(state.todayDate !== todayISO()){
     state.todayDate = todayISO();
     state.todayCount = 0;
   }
 }
+
 async function saveState(){
-  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
-  catch(e){ console.error("save failed", e); }
+  try{
+    const { error } = await supabase
+      .from('culcom_progress')
+      .upsert({
+        id: ROW_ID,
+        counts: state.counts,
+        today_date: state.todayDate,
+        today_count: state.todayCount,
+        current_id: state.currentId,
+        ih_total: state.ihTotal,
+        updated_at: new Date().toISOString()
+      });
+    if(error) throw error;
+  }catch(e){ console.error("save failed", e); }
 }
 
 function weightedPick(excludeId){
