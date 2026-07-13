@@ -9,18 +9,18 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
 :root{
-  --bg: #FDECE0;
-  --card: #FFF8F2;
-  --card-back: #F6E4D3;
-  --ink: #33291F;
-  --muted: #8C7A68;
-  --muted-2: #B4A28E;
-  --sage: #5F8267;
-  --sage-dim: #B9CBBB;
-  --coral: #DE5B45;
-  --line: #E9D6C2;
-  --hole: #FDECE0;
-  --hole-ring: #D8C2AC;
+  --bg: #EEF0FB;
+  --card: #FBFBFF;
+  --card-back: #E3E4F7;
+  --ink: #26244A;
+  --muted: #6E6C96;
+  --muted-2: #A3A1C4;
+  --sage: #5B5BD6;
+  --sage-dim: #C3C3F0;
+  --coral: #8B5CF6;
+  --line: #DBDBF0;
+  --hole: #EEF0FB;
+  --hole-ring: #C6C6E8;
 }
 *{box-sizing:border-box;}
 body{
@@ -55,8 +55,8 @@ body{
 .subtitle{font-size:12px; color:var(--muted); margin-top:3px;}
 .badge{
   font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600;
-  color:var(--coral); background:rgba(222,91,69,0.09);
-  border:1px solid rgba(222,91,69,0.25); border-radius:20px;
+  color:var(--coral); background:rgba(139,92,246,0.09);
+  border:1px solid rgba(139,92,246,0.3); border-radius:20px;
   padding:4px 10px;
 }
 
@@ -123,7 +123,7 @@ body{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:10px;
-  box-shadow: 0 3px 0 var(--card-back), 0 8px 20px rgba(90,60,30,0.08);
+  box-shadow: 0 3px 0 var(--card-back), 0 8px 20px rgba(60,60,140,0.08);
   padding:20px 22px 22px;
 }
 .card-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;}
@@ -228,8 +228,8 @@ button:active{opacity:.75;}
   font-family:'IBM Plex Mono',monospace; font-size:9px; font-weight:600;
   color:var(--muted); background:var(--card); border:1px solid var(--line);
 }
-.tile.p1{background:#E4EFE5; color:var(--sage); border-color:var(--sage-dim);}
-.tile.p2{background:#C9DECB; color:#3d5941; border-color:var(--sage);}
+.tile.p1{background:#E6E6FA; color:var(--sage); border-color:var(--sage-dim);}
+.tile.p2{background:#C9C9F2; color:#3d3d8f; border-color:var(--sage);}
 .tile.p3plus{background:var(--sage); color:#fff; border-color:var(--sage);}
 
 .footer-note{text-align:center; font-size:11px; color:var(--muted-2); margin-top:22px; line-height:1.6;}
@@ -255,7 +255,7 @@ button:active{opacity:.75;}
   width:min(370px, calc(100vw - 32px));
   max-height:72vh;
   background:var(--card); border:1px solid var(--line); border-radius:12px;
-  box-shadow:0 12px 34px rgba(60,40,20,.25);
+  box-shadow:0 12px 34px rgba(50,50,120,.25);
   display:none; flex-direction:column; overflow:hidden;
 }
 .notes-float.open{display:flex;}
@@ -325,7 +325,7 @@ button:active{opacity:.75;}
   display:inline-block; font-size:10px; font-weight:700; border-radius:4px;
   padding:1px 6px; margin-right:6px; vertical-align:1px;
 }
-.compare-mine .compare-tag{background:rgba(222,91,69,0.12); color:var(--coral);}
+.compare-mine .compare-tag{background:rgba(139,92,246,0.14); color:var(--coral);}
 .compare-fixed .compare-tag{background:rgba(95,130,103,0.14); color:var(--sage);}
 .compare-mine{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--muted-2);}
 .compare-fixed{color:var(--ink); font-weight:600;}
@@ -353,8 +353,9 @@ button:active{opacity:.75;}
   </div>
 
   <div class="mode-tabs">
-    <div class="mode-tab active" id="tabUnit">📖 단원별 학습</div>
-    <div class="mode-tab" id="tabRandom">🎲 랜덤 IH 확장</div>
+    <div class="mode-tab active" id="tabUnit">📖 컬컴</div>
+    <div class="mode-tab" id="tabRandom">🎲 랜덤 IH</div>
+    <div class="mode-tab" id="tabGiu">📘 Grammar</div>
   </div>
 
   <div class="voice-row">
@@ -405,6 +406,16 @@ button:active{opacity:.75;}
   <!-- ===== RANDOM MODE ===== -->
   <div id="randomModeView" class="hidden">
     <div class="deck" id="randomDeck"></div>
+  </div>
+
+  <!-- ===== GRAMMAR IN USE MODE ===== -->
+  <div id="giuModeView" class="hidden">
+    <div class="unit-bar" id="giuUnitBar"></div>
+    <div class="unit-nav">
+      <button class="btn-ghost" id="btnGiuPrev">← 이전 유닛</button>
+      <button class="btn-ghost" id="btnGiuNext">다음 유닛 →</button>
+    </div>
+    <div class="deck" id="giuDeck"></div>
   </div>
 
   <div class="checkpoint">
@@ -977,7 +988,7 @@ try{
   console.error("Supabase client init failed — falling back to local-only mode", e);
 }
 
-let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0, notes:[], corrections:{}, attempts:{} };
+let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0, notes:[], corrections:{}, attempts:{}, giu:{} };
 let mode = "unit"; // "unit" | "random"
 let currentUnitIndex = 0;
 
@@ -1004,6 +1015,7 @@ async function loadState(){
       state.notes = data.notes || [];
       state.corrections = data.corrections || {};
       state.attempts = data.attempts || {};
+      state.giu = data.giu || {};
     }
   }catch(e){ console.error("load failed", e); }
   if(state.todayDate !== todayISO()){
@@ -1027,6 +1039,7 @@ async function saveState(){
         notes: state.notes,
         corrections: state.corrections,
         attempts: state.attempts,
+        giu: state.giu,
         updated_at: new Date().toISOString()
       });
     if(error) throw error;
@@ -1326,18 +1339,295 @@ function renderRandomDeck(){
 }
 
 // ---- MODE SWITCH ----
+
+// ===================== GRAMMAR IN USE =====================
+const GIU_UNITS = [
+  "Present continuous (I am doing)","Simple present (I do)","Present continuous and simple present 1","Present continuous and simple present 2","Simple past (I did)",
+  "Past continuous (I was doing)","Present perfect 1 (I have done)","Present perfect 2 (I have done)","Present perfect continuous (I have been doing)","Present perfect continuous and simple",
+  "How long have you (been)...?","When...? and How long...? For and since","Present perfect and simple past 1","Present perfect and simple past 2","Past perfect (I had done)",
+  "Past perfect continuous (I had been doing)","Have and have got","Used to (do)","Present tenses for the future","I'm going to (do)",
+  "Will 1","Will 2","I will and I'm going to","Will be doing and will have done","When I do / When I've done, When and if",
+  "Can, could, and (be) able to","Could (do) and could have (done)","Must (You must be tired, etc.)","May and might 1","May and might 2",
+  "Have to and must","Necessity: must, don't have to, etc.","Should 1","Should 2","I'd better... It's time...",
+  "Would","Can/Could/Would you...? (Requests)","If I do... and If I did...","If I knew... I wish I knew...","If I had known... I wish I had known...",
+  "Wish","Passive 1 (is done / was done)","Passive 2 (be/been/being done)","Passive 3","It is said that... He is said to...",
+  "Have something done","Reported speech 1","Reported speech 2","Questions 1","Questions 2 (Do you know where...?)"
+];
+const GIU_EXAMPLES = {
+  1: ["I'm preparing for a speaking test these days.","My English is getting better little by little.","I'm trying to build a workout habit this year."],
+  2: ["I go to the gym before work.","My class starts at 7:20 in the morning.","I usually run five kilometers on weekends."],
+  3: ["I usually cook at home, but today I'm ordering delivery food.","She works at a hospital, but she's taking a day off today.","I don't usually drink coffee, but I'm having one now."],
+  4: ["I'm thinking about changing my schedule.","He's always complaining about his workload.","I'm learning new grammar patterns this month."],
+  5: ["I went to a Korean medicine clinic yesterday.","I canceled my hiking trip last weekend.","She finished the report before the deadline."],
+  6: ["I was running when it started to rain.","My wrist was throbbing all day yesterday.","I was watching a drama when you texted me."],
+  7: ["I have just finished my workout.","She has already left the office.","I haven't decided yet."],
+  8: ["I've lost my gym card. Have you seen it?","Something has happened to my wrist.","He has gone home early today."],
+  9: ["I have been studying English since January.","It has been raining all morning.","I've been working at this company for nine years."],
+  10: ["I've been running for an hour, so I'm tired.","I've read that book twice.","She's been cooking all afternoon, and she's made three dishes."],
+  11: ["How long have you been working there?","How long have you known each other?","How long have you been preparing for the exam?"],
+  12: ["I've lived alone for nine years.","She has been sick since last Tuesday.","We've been friends since college."],
+  13: ["I've lost my keys. I can't get in. / I lost my keys yesterday.","Have you ever been to Japan? / When did you go there?","I've finished the report. / I finished it this morning."],
+  14: ["It hasn't rained this week.","I did a lot of work yesterday.","She hasn't called me today, but she called twice yesterday."],
+  15: ["When I arrived, the meeting had already started.","I had never tried functional training before last year.","By the time I got home, I had walked ten kilometers."],
+  16: ["My wrist hurt because I had been typing all day.","I was tired because I had been running.","The ground was wet — it had been raining all night."],
+  17: ["I have a lot of work this week.","She has got two cats.","Do you have any plans for the weekend?"],
+  18: ["I used to skip breakfast, but now I eat every morning.","I used to work night shifts as a nurse.","She used to live near the office."],
+  19: ["I'm meeting my study group tomorrow.","My class starts at ten on Saturday.","What are you doing this weekend?"],
+  20: ["I'm going to take weekend classes instead.","She's going to change jobs this year.","Look at those clouds — it's going to rain."],
+  21: ["I'll call you after the gym.","Don't worry, I'll help you with the report.","I think it'll be hot tomorrow."],
+  22: ["I'll probably stay home this weekend.","Do you think she'll pass the exam?","I'm sure you'll do great on the test."],
+  23: ["I've already decided — I'm going to focus on speaking.","\u0022The phone is ringing.\u0022 \u0022OK, I'll get it.\u0022","We're going to visit the site next week."],
+  24: ["This time tomorrow, I'll be taking my speaking test.","By next year, I will have worked here for ten years.","Don't call at seven — I'll be working out."],
+  25: ["I'll text you when I get home.","When I've finished this report, I'll take a break.","If it rains tomorrow, I'll work out at home."],
+  26: ["I can run five kilometers without stopping now.","I couldn't sleep well last night.","I wasn't able to attend the meeting yesterday."],
+  27: ["We could take a weekend class instead.","I could have gone to the party, but I was too tired.","You could have told me earlier!"],
+  28: ["You've been working all day — you must be tired.","She must have forgotten our appointment.","He didn't answer — he must be in a meeting."],
+  29: ["I may go hiking this weekend if the weather is nice.","She might be at the gym now.","It might rain later, so take an umbrella."],
+  30: ["I might have left my badge at the site.","She may have already heard the news.","We might be going to Busan next month."],
+  31: ["I have to submit the report by Friday.","You must wear a wrist brace until it heals.","I had to cancel my plans because of the rain."],
+  32: ["You don't have to come early tomorrow.","I must not forget to bring my documents.","We don't need to book in advance."],
+  33: ["You should see a doctor about your wrist.","I think we should leave now.","You shouldn't skip stretching after running."],
+  34: ["You should have told me you were sick.","I shouldn't have stayed up so late.","She should have taken the earlier train."],
+  35: ["I'd better leave now, or I'll be late.","It's time to go to bed.","You'd better not touch that — it's hot."],
+  36: ["I would love to travel more if I had time.","When I was a child, I would play outside all day.","Would you like some coffee?"],
+  37: ["Could you check this report for me?","Would you mind closing the window?","Can I ask you something?"],
+  38: ["If it rains tomorrow, I'll cancel the hike.","If I finish early, I'll go to the gym.","If I had more time, I would exercise every day."],
+  39: ["If I knew her number, I would call her.","I wish I knew how to cook better.","If I were you, I would take the weekend class."],
+  40: ["If I had woken up earlier, I wouldn't have missed the bus.","I wish I had studied English harder in school.","If I had known about the schedule change, I would have told you."],
+  41: ["I wish it wasn't raining.","I wish I could speak English fluently.","I wish my wrist would stop hurting."],
+  42: ["This report was written by my colleague.","English is spoken in many countries.","My schedule was changed last week."],
+  43: ["The documents have been reviewed.","My wrist is being treated at a clinic.","The meeting has been canceled."],
+  44: ["I was given a second chance.","She was told to wait outside.","We were shown the new office."],
+  45: ["It is said that morning exercise is good for focus.","He is said to be a great teacher.","The clinic is supposed to be very good."],
+  46: ["I had my hair cut yesterday.","I'm having my laptop repaired this week.","She had her apartment cleaned."],
+  47: ["She said that she was too busy to come.","He told me that the class had been canceled.","I said I would call back later."],
+  48: ["She asked me where I worked.","He asked if I could help him.","They told us not to be late."],
+  49: ["What time does the class start?","Who told you that?","Why didn't you call me yesterday?"],
+  50: ["Do you know where the nearest station is?","Can you tell me what time it starts?","I don't know why she changed her mind."],
+};
+
+function giuState(){
+  if(!state.giu) state.giu = {};
+  const g = state.giu;
+  if(!g.unitTitles) g.unitTitles = {};
+  if(!g.counts) g.counts = {};
+  if(!g.attempts) g.attempts = {};
+  if(!g.corrections) g.corrections = {};
+  if(!g.examples) g.examples = {};
+  if(!g.currentUnit) g.currentUnit = 1;
+  return g;
+}
+function giuTitle(n){
+  const g = giuState();
+  return g.unitTitles[n] || GIU_UNITS[n-1] || ('Unit ' + n);
+}
+function renderGiuBar(){
+  const g = giuState();
+  const bar = document.getElementById('giuUnitBar');
+  bar.innerHTML = '';
+  for(let n=1;n<=50;n++){
+    const chip = document.createElement('div');
+    let cls = 'unit-chip';
+    if(n === g.currentUnit) cls += ' active';
+    chip.className = cls;
+    chip.textContent = 'U' + n;
+    chip.onclick = ()=>{ g.currentUnit = n; saveState(); renderGiu(); };
+    bar.appendChild(chip);
+  }
+  const active = bar.querySelector('.unit-chip.active');
+  if(active) active.scrollIntoView({inline:'center', block:'nearest'});
+}
+function makeSpeakRow(text){
+  const row = document.createElement('div');
+  row.className = 'speak-row';
+  row.innerHTML = '<button class="speak-btn">\ud83d\udd0a \ub4e3\uace0 \ub530\ub77c \ub9d0\ud558\uae30</button><span class="repeat-counter"><span data-count>0</span>/5</span><button class="repeat-btn">\ub9d0\ud588\uc5b4\uc694 +1</button>';
+  row.querySelector('.speak-btn').addEventListener('click', ()=> speakText(text));
+  row.querySelector('.repeat-btn').addEventListener('click', ()=>{
+    const c = row.querySelector('[data-count]');
+    const w = row.querySelector('.repeat-counter');
+    const num = parseInt(c.textContent)+1;
+    c.textContent = num;
+    w.classList.toggle('done', num>=5);
+  });
+  return row;
+}
+function renderGiu(){
+  renderGiuBar();
+  const g = giuState();
+  const n = g.currentUnit;
+  const deck = document.getElementById('giuDeck');
+  deck.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-top">
+      <div class="card-num mono">U${n}</div>
+      <div class="card-count mono">${g.counts[n]||0}\ud68c \uc5f0\uc2b5</div>
+    </div>
+    <div class="pattern-en" data-giu-title style="margin-top:10px;"></div>
+    <div class="ih-head" style="margin-top:14px;">\ud83d\udd24 \uae30\ubcf8 \uc608\ubb38</div>
+    <div data-giu-builtin></div>
+    <div class="ih-head" style="margin-top:16px;">\ud83d\udcd6 \uc678\uc6b8 \uc608\ubb38 \uc800\uc7a5\uc18c</div>
+    <div class="ih-hint">\ucc45\uc5d0\uc11c \uc678\uc6b0\uace0 \uc2f6\uc740 \uc608\ubb38 \uc9c1\uc811 \ud0c0\uc774\ud551 (\ud0c0\uc774\ud551 = 1\ucc28 \uc554\uae30!)</div>
+    <textarea class="attempt" data-giu-exbox placeholder="\uc608\ubb38 \ud558\ub098 \uc785\ub825" style="min-height:40px;"></textarea>
+    <div class="btn-row"><button class="btn-primary" data-giu-exsave>\uc608\ubb38 \uc800\uc7a5</button></div>
+    <div data-giu-exlist></div>
+    <div class="ih-head" style="margin-top:16px;"><span class="ih-step">STEP 1</span> \uc774 \ubb38\ubc95\uc73c\ub85c \ub0b4 \ubb38\uc7a5</div>
+    <textarea class="attempt" data-giu-s1 placeholder="\uc774 \uc720\ub2db \ubb38\ubc95\uc73c\ub85c \uc601\uc791\ud574\ubcf4\uc138\uc694..."></textarea>
+    <div class="ih-panel">
+      <div class="ih-head"><span class="ih-step">STEP 2</span> IH \ud655\uc7a5</div>
+      <textarea class="attempt ih-textarea" data-giu-s2 placeholder="which made me ~ / because ~ \ub85c \ud655\uc7a5"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" data-giu-done>\uc5f0\uc2b5 \uc644\ub8cc (+1)</button>
+      <button class="btn-check" data-giu-copy style="width:auto;flex:1;">\ud83d\udccb Claude \uac80\uc218 \uc694\uccad \ubcf5\uc0ac</button>
+    </div>
+    <div class="copy-toast" data-giu-toast>\ubcf5\uc0ac\ub410\uc5b4\uc694! Claude\uc5d0 \ubd99\uc5ec\ub123\uc5b4 \ubcf4\uc138\uc694 \u2705</div>
+    <div class="ih-head" style="margin-top:16px;">\u270f\ufe0f Claude \uad50\uc815 \ube44\uad50</div>
+    <textarea class="attempt" data-giu-corrbox placeholder="Claude \uad50\uc815\ubcf8\uc744 \uc5ec\uae30\uc5d0 \ubd99\uc5ec\ub123\uae30" style="min-height:40px;"></textarea>
+    <div class="btn-row"><button class="btn-coral" data-giu-corrsave>\ube44\uad50 \uc800\uc7a5</button></div>
+    <div data-giu-corrlist></div>
+  `;
+  deck.appendChild(card);
+
+  // title
+  card.querySelector('[data-giu-title]').textContent = giuTitle(n);
+
+  // built-in examples
+  const builtinEl = card.querySelector('[data-giu-builtin]');
+  (GIU_EXAMPLES[n]||[]).forEach(text=>{
+    const item = document.createElement('div');
+    item.className = 'ex-item';
+    item.innerHTML = '<div class="ex-en">'+text+'</div>';
+    item.appendChild(makeSpeakRow(text));
+    builtinEl.appendChild(item);
+  });
+
+  // my examples
+  function renderGiuExList(){
+    const listEl = card.querySelector('[data-giu-exlist]');
+    listEl.innerHTML = '';
+    const items = g.examples[n]||[];
+    items.slice().reverse().forEach((item, revIdx)=>{
+      const realIdx = items.length-1-revIdx;
+      const box = document.createElement('div');
+      box.className = 'compare-item';
+      box.innerHTML = '<button class="compare-del">\u00d7</button><div class="compare-row compare-fixed" style="margin-right:20px;">'+item.text+'</div><div class="compare-date">'+item.date+'</div>';
+      box.insertBefore(makeSpeakRow(item.text), box.querySelector('.compare-date'));
+      box.querySelector('.compare-del').addEventListener('click', ()=>{
+        g.examples[n].splice(realIdx,1); saveState(); renderGiuExList();
+      });
+      listEl.appendChild(box);
+    });
+  }
+  renderGiuExList();
+  card.querySelector('[data-giu-exsave]').addEventListener('click', ()=>{
+    const box = card.querySelector('[data-giu-exbox]');
+    const text = box.value.trim();
+    if(!text) return;
+    if(!g.examples[n]) g.examples[n] = [];
+    g.examples[n].push({text, date: todayISO()});
+    box.value = '';
+    saveState(); renderGiuExList();
+  });
+
+  // attempts persistence
+  const s1 = card.querySelector('[data-giu-s1]');
+  const s2 = card.querySelector('[data-giu-s2]');
+  if(g.attempts[n]){ s1.value = g.attempts[n].s1||''; s2.value = g.attempts[n].s2||''; }
+  function persistGiu(){
+    if(!g.attempts[n]) g.attempts[n] = {};
+    g.attempts[n].s1 = s1.value; g.attempts[n].s2 = s2.value;
+    saveState();
+  }
+  s1.addEventListener('change', persistGiu);
+  s2.addEventListener('change', persistGiu);
+
+  // done
+  card.querySelector('[data-giu-done]').addEventListener('click', ()=>{
+    g.counts[n] = (g.counts[n]||0)+1;
+    state.todayCount += 1;
+    persistGiu();
+    renderStats();
+    card.querySelector('.card-count').textContent = g.counts[n]+'\ud68c \uc5f0\uc2b5';
+  });
+
+  // copy check
+  card.querySelector('[data-giu-copy]').addEventListener('click', ()=>{
+    persistGiu();
+    let msg = '\uc544\ub798 \uc601\uc791 \ubb38\uc7a5 \uac80\uc218 \ubd80\ud0c1\ud574! (Grammar in Use \uc5f0\uc2b5)\n\n';
+    msg += 'Unit '+n+': '+giuTitle(n)+'\n';
+    msg += '\ub0b4 \ubb38\uc7a5: '+(s1.value.trim()||'(\uc544\uc9c1 \uc548 \uc74c)')+'\n';
+    if(s2.value.trim()) msg += 'IH \ud655\uc7a5 \uc2dc\ub3c4: '+s2.value.trim()+'\n';
+    msg += '\n\ubb38\ubc95 \uc624\ub958 \uc788\uc73c\uba74 \uc9da\uc5b4\uc8fc\uace0, \ub354 \uc790\uc5f0\uc2a4\ub7ec\uc6b4 \ud45c\ud604 \uc788\uc73c\uba74 \uc54c\ub824\uc918!';
+    navigator.clipboard.writeText(msg).then(()=>{
+      const t = card.querySelector('[data-giu-toast]');
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 2200);
+    }).catch(()=>{ alert(msg); });
+  });
+
+  // corrections
+  function renderGiuCorrList(){
+    const listEl = card.querySelector('[data-giu-corrlist]');
+    listEl.innerHTML = '';
+    const items = g.corrections[n]||[];
+    items.slice().reverse().forEach((item, revIdx)=>{
+      const realIdx = items.length-1-revIdx;
+      const box = document.createElement('div');
+      box.className = 'compare-item';
+      box.innerHTML = '<button class="compare-del">\u00d7</button>'
+        + '<div class="compare-row compare-mine"><span class="compare-tag">\u274c \ub0b4 \ubb38\uc7a5</span>'+item.mine+'</div>'
+        + '<div class="compare-row compare-fixed"><span class="compare-tag">\u2705 \uad50\uc815\ubcf8</span>'+item.corrected+'</div>'
+        + '<div class="compare-date">'+item.date+'</div>';
+      box.insertBefore(makeSpeakRow(item.corrected), box.querySelector('.compare-date'));
+      box.querySelector('.compare-del').addEventListener('click', ()=>{
+        g.corrections[n].splice(realIdx,1); saveState(); renderGiuCorrList();
+      });
+      listEl.appendChild(box);
+    });
+  }
+  renderGiuCorrList();
+  card.querySelector('[data-giu-corrsave]').addEventListener('click', ()=>{
+    const box = card.querySelector('[data-giu-corrbox]');
+    const corrected = box.value.trim();
+    if(!corrected){ alert('\uad50\uc815\ubcf8\uc744 \ubd99\uc5ec\ub123\uc5b4 \uc8fc\uc138\uc694!'); return; }
+    if(!g.corrections[n]) g.corrections[n] = [];
+    g.corrections[n].push({ mine: s1.value.trim()||'(\ub0b4 \ubb38\uc7a5 \uc5c6\uc74c)', corrected, date: todayISO() });
+    box.value = '';
+    saveState(); renderGiuCorrList();
+  });
+}
+document.getElementById('btnGiuPrev').addEventListener('click', ()=>{
+  const g = giuState();
+  g.currentUnit = g.currentUnit === 1 ? 50 : g.currentUnit - 1;
+  saveState(); renderGiu();
+});
+document.getElementById('btnGiuNext').addEventListener('click', ()=>{
+  const g = giuState();
+  g.currentUnit = g.currentUnit === 50 ? 1 : g.currentUnit + 1;
+  saveState(); renderGiu();
+});
+// ===================== END GRAMMAR IN USE =====================
+
 function setMode(newMode){
   mode = newMode;
   document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
   document.getElementById('tabRandom').classList.toggle('active', mode==='random');
+  document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('randomModeView').classList.toggle('hidden', mode!=='random');
+  document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
-    : "무작위 패턴 뽑기 · IH 확장까지 한 번에";
+    : mode==='random'
+    ? "무작위 패턴 뽑기 · IH 확장까지 한 번에"
+    : "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장";
   if(mode==='unit') renderUnitDeck();
-  else renderRandomDeck();
+  else if(mode==='random') renderRandomDeck();
+  else renderGiu();
 }
+document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
 document.getElementById('tabRandom').addEventListener('click', ()=>setMode('random'));
 
