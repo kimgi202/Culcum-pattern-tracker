@@ -402,6 +402,7 @@ button:active{opacity:.75;}
       <div class="stat-label">패턴 커버리지</div>
     </div>
   </div>
+  <div id="saveStatus" style="margin-top:6px;text-align:right;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-2);">저장 대기중...</div>
 
   <!-- ===== UNIT MODE ===== -->
   <div id="unitModeView">
@@ -1034,8 +1035,26 @@ async function loadState(){
   }
 }
 
+let saveFailAlerted = false;
+function setSaveStatus(ok, detail){
+  const el = document.getElementById('saveStatus');
+  if(!el) return;
+  const t = new Date().toTimeString().slice(0,5);
+  if(ok){
+    el.textContent = `✓ 저장됨 ${t}`;
+    el.style.color = 'var(--sage)';
+  }else{
+    el.textContent = `⚠️ 저장 실패! (${detail||'연결 오류'})`;
+    el.style.color = '#d33';
+    if(!saveFailAlerted){
+      saveFailAlerted = true;
+      alert('⚠️ 저장에 실패하고 있어요!\n\nSupabase에 새 컬럼(attempts, giu)이 없으면 저장 전체가 실패해요.\nSQL Editor에서 컬럼 추가 SQL을 실행했는지 확인해주세요.\n\n(이 경고는 세션당 한 번만 떠요)');
+    }
+  }
+}
+
 async function saveState(){
-  if(!sb) return;
+  if(!sb){ setSaveStatus(false, 'Supabase 미연결'); return; }
   try{
     const { error } = await sb
       .from('culcom_progress')
@@ -1053,7 +1072,11 @@ async function saveState(){
         updated_at: new Date().toISOString()
       });
     if(error) throw error;
-  }catch(e){ console.error("save failed", e); }
+    setSaveStatus(true);
+  }catch(e){
+    console.error("save failed", e);
+    setSaveStatus(false, e.message ? e.message.slice(0,40) : '');
+  }
 }
 
 function markPracticed(id){
