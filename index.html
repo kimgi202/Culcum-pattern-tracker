@@ -363,6 +363,16 @@ button:active{opacity:.75;}
     <select id="voiceSelect"><option>불러오는 중...</option></select>
     <button class="voice-test" id="voiceTest">미리듣기</button>
   </div>
+  <div class="voice-row" style="margin-top:6px;">
+    <span class="voice-label">⏩ 배속</span>
+    <select id="rateSelect" style="flex:0 0 auto;min-width:90px;">
+      <option value="0.6">0.6x (아주 천천히)</option>
+      <option value="0.75">0.75x (천천히)</option>
+      <option value="0.9" selected>0.9x (기본)</option>
+      <option value="1.0">1.0x (보통)</option>
+      <option value="1.2">1.2x (빠르게)</option>
+    </select>
+  </div>
 
   <div class="quick-listen">
     <div class="quick-listen-head">🎧 빠른 듣기 — Claude가 준 교정 문장, 아무거나 붙여넣기</div>
@@ -1069,7 +1079,7 @@ function speakText(text){
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'en-US';
-  utter.rate = 0.9;
+  utter.rate = parseFloat(localStorage.getItem('culcom-tts-rate') || '0.9');
   const voices = window.speechSynthesis.getVoices();
   let chosen = null;
   if(selectedVoiceURI){
@@ -1113,6 +1123,17 @@ document.getElementById('voiceSelect').addEventListener('change', (e)=>{
   selectedVoiceURI = e.target.value;
   localStorage.setItem('culcom-voice-uri', selectedVoiceURI);
 });
+// 배속 설정 복원 + 저장
+(function(){
+  const rateSel = document.getElementById('rateSelect');
+  const saved = localStorage.getItem('culcom-tts-rate');
+  if(saved) rateSel.value = saved;
+  rateSel.addEventListener('change', ()=>{
+    localStorage.setItem('culcom-tts-rate', rateSel.value);
+    speakText("This is the new speed. How does it sound?");
+  });
+})();
+
 document.getElementById('voiceTest').addEventListener('click', ()=>{
   speakText("Hi, this is how I sound. I hope this helps with your speaking practice!");
 });
