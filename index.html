@@ -37,6 +37,12 @@ body{
   padding:26px 18px 60px 40px;
   position:relative;
 }
+/* 넓은 화면: 본문을 왼쪽으로 치우쳐 배치 → 오른쪽에 노트/청크 패널 공간 확보 */
+@media (min-width: 1120px){
+  .wrap{
+    margin: 0 auto 0 max(60px, calc(50% - 560px));
+  }
+}
 
 .spiral{
   position:fixed; left:0; top:0; bottom:0; width:34px;
@@ -268,13 +274,19 @@ button:active{opacity:.75;}
   background:none; border:none; font-size:20px; color:var(--muted);
   cursor:pointer; padding:0 6px; line-height:1;
 }
+.float-tab{
+  font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:6px;
+  border:1px solid var(--line); background:#fff; color:var(--muted); cursor:pointer;
+}
+.float-tab.active{background:var(--sage); color:#fff; border-color:var(--sage);}
 .notes-float-body{
   overflow-y:auto; padding:12px 14px;
 }
 /* 넓은 화면: 본문 오른쪽 옆에 나란히 고정 */
 @media (min-width: 1120px){
   .notes-float{
-    right: calc(50% - 330px - 396px);
+    left: max(740px, calc(50% - 560px + 680px));
+    right: auto;
     top: 90px; bottom: auto;
     max-height: calc(100vh - 120px);
   }
@@ -379,7 +391,7 @@ button:active{opacity:.75;}
     <textarea class="attempt quick-listen-box" id="quickListenBox" placeholder="채팅에서 받은 교정 문장을 여기에 붙여넣으세요"></textarea>
     <div class="speak-row">
       <button class="speak-btn" id="quickSpeakBtn">🔊 듣고 따라 말하기</button>
-      <span class="repeat-counter" id="quickRepeatWrap"><span id="quickRepeatCount">0</span>/5</span>
+      <span class="repeat-counter" id="quickRepeatWrap"></span>
       <button class="repeat-btn" id="quickRepeatBtn">말했어요 +1</button>
     </div>
   </div>
@@ -447,18 +459,33 @@ button:active{opacity:.75;}
 
   <div class="notes-float" id="notesFloat">
     <div class="notes-float-head">
-      <div class="checkpoint-title">📝 나의 메타인지 노트 (<span id="notesCount">0</span>개)</div>
+      <div style="display:flex;gap:6px;">
+        <button class="float-tab active" id="floatTabNotes">📝 노트 (<span id="notesCount">0</span>)</button>
+        <button class="float-tab" id="floatTabChunks">🧩 청크 (<span id="chunksCount">0</span>)</button>
+      </div>
       <button class="notes-close" id="notesClose">×</button>
     </div>
     <div class="notes-float-body">
-      <div id="addNoteForm" class="add-note-form">
-        <input type="text" id="noteTitle" placeholder="제목 (예: if절 + had+p.p. 짝 맞추기)">
-        <textarea id="noteBody" placeholder="Claude가 준 설명 붙여넣기 or 직접 요약해서 쓰기"></textarea>
-        <div class="btn-row">
-          <button class="btn-primary" id="btnSaveNote">저장</button>
+      <div id="notesView">
+        <div id="addNoteForm" class="add-note-form">
+          <input type="text" id="noteTitle" placeholder="제목 (예: if절 + had+p.p. 짝 맞추기)">
+          <textarea id="noteBody" placeholder="Claude가 준 설명 붙여넣기 or 직접 요약해서 쓰기"></textarea>
+          <div class="btn-row">
+            <button class="btn-primary" id="btnSaveNote">저장</button>
+          </div>
         </div>
+        <div id="notesList"></div>
       </div>
-      <div id="notesList"></div>
+      <div id="chunksView" class="hidden">
+        <div class="add-note-form">
+          <input type="text" id="chunkText" placeholder="청크 (예: I was supposed to ~)">
+          <input type="text" id="chunkMeaning" placeholder="뜻 (예: ~하기로 되어 있었다)" style="margin-top:6px;">
+          <div class="btn-row">
+            <button class="btn-primary" id="btnSaveChunk">저장</button>
+          </div>
+        </div>
+        <div id="chunksList"></div>
+      </div>
     </div>
   </div>
 
@@ -1165,22 +1192,33 @@ document.getElementById('quickSpeakBtn').addEventListener('click', ()=>{
   if(text) speakText(text);
 });
 document.getElementById('quickRepeatBtn').addEventListener('click', ()=>{
-  const countEl = document.getElementById('quickRepeatCount');
-  const wrapEl = document.getElementById('quickRepeatWrap');
-  const n = parseInt(countEl.textContent) + 1;
-  countEl.textContent = n;
-  wrapEl.classList.toggle('done', n >= 5);
+  bumpRepeat(document.getElementById('quickRepeatWrap'));
 });
+initRepeat(document.getElementById('quickRepeatWrap'));
 
+function repeatVisual(n){
+  const total = 5;
+  let s = '';
+  for(let i=0;i<total;i++) s += i<n ? '\ud83d\udfe3' : '\u26aa';
+  if(n>=total) s += ' \ud83c\udf89';
+  if(n>total) s += ' \u00d7'+n;
+  return s;
+}
+function bumpRepeat(wrapEl){
+  const n = (parseInt(wrapEl.dataset.n||'0'))+1;
+  wrapEl.dataset.n = n;
+  wrapEl.innerHTML = repeatVisual(n);
+  wrapEl.classList.toggle('done', n>=5);
+}
+function initRepeat(wrapEl){
+  wrapEl.dataset.n = 0;
+  wrapEl.innerHTML = repeatVisual(0);
+}
 function wireRepeatCounter(scopeEl, speakBtnSel, wrapSel, countSel, repeatBtnSel, text){
   scopeEl.querySelector(speakBtnSel).addEventListener('click', ()=> speakText(text));
-  const countEl = scopeEl.querySelector(countSel);
   const wrapEl = scopeEl.querySelector(wrapSel);
-  scopeEl.querySelector(repeatBtnSel).addEventListener('click', ()=>{
-    const n = parseInt(countEl.textContent) + 1;
-    countEl.textContent = n;
-    wrapEl.classList.toggle('done', n >= 5);
-  });
+  initRepeat(wrapEl);
+  scopeEl.querySelector(repeatBtnSel).addEventListener('click', ()=> bumpRepeat(wrapEl));
 }
 
 // ---- 공유 카드 컴포넌트 ----
@@ -1206,7 +1244,7 @@ function buildCard(p){
           <div class="ex-kr">${e.kr}</div>
           <div class="speak-row" data-speak-row="${i}">
             <button class="speak-btn" data-speak-btn>🔊 듣고 따라 말하기</button>
-            <span class="repeat-counter" data-repeat-wrap><span data-repeat-count>0</span>/5</span>
+            <span class="repeat-counter" data-repeat-wrap></span>
             <button class="repeat-btn" data-repeat-btn>말했어요 +1</button>
           </div>
         </div>`).join('')}
@@ -1307,7 +1345,7 @@ function renderCompareList(wrap, patternId){
       <div class="compare-row compare-fixed"><span class="compare-tag">✅ 교정본</span>${item.corrected}</div>
       <div class="speak-row">
         <button class="speak-btn" data-speak-btn>🔊 교정본 듣고 따라 말하기</button>
-        <span class="repeat-counter" data-repeat-wrap><span data-repeat-count>0</span>/5</span>
+        <span class="repeat-counter" data-repeat-wrap></span>
         <button class="repeat-btn" data-repeat-btn>말했어요 +1</button>
       </div>
       <div class="compare-date">${dateStr}</div>
@@ -1484,15 +1522,11 @@ function renderGiuBar(){
 function makeSpeakRow(text){
   const row = document.createElement('div');
   row.className = 'speak-row';
-  row.innerHTML = '<button class="speak-btn">\ud83d\udd0a \ub4e3\uace0 \ub530\ub77c \ub9d0\ud558\uae30</button><span class="repeat-counter"><span data-count>0</span>/5</span><button class="repeat-btn">\ub9d0\ud588\uc5b4\uc694 +1</button>';
+  row.innerHTML = '<button class="speak-btn">\ud83d\udd0a \ub4e3\uace0 \ub530\ub77c \ub9d0\ud558\uae30</button><span class="repeat-counter" data-wrap></span><button class="repeat-btn">\ub9d0\ud588\uc5b4\uc694 +1</button>';
   row.querySelector('.speak-btn').addEventListener('click', ()=> speakText(text));
-  row.querySelector('.repeat-btn').addEventListener('click', ()=>{
-    const c = row.querySelector('[data-count]');
-    const w = row.querySelector('.repeat-counter');
-    const num = parseInt(c.textContent)+1;
-    c.textContent = num;
-    w.classList.toggle('done', num>=5);
-  });
+  const wrapEl = row.querySelector('[data-wrap]');
+  initRepeat(wrapEl);
+  row.querySelector('.repeat-btn').addEventListener('click', ()=> bumpRepeat(wrapEl));
   return row;
 }
 function renderGiu(){
@@ -1509,7 +1543,10 @@ function renderGiu(){
       <div class="card-count mono">${g.counts[n]||0}\ud68c \uc5f0\uc2b5</div>
     </div>
     <div class="pattern-en" data-giu-title style="margin-top:10px;"></div>
-    <div class="ih-head" style="margin-top:14px;">\ud83d\udd24 \uae30\ubcf8 \uc608\ubb38</div>
+    <div class="ih-head" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span>\ud83d\udd24 \uae30\ubcf8 \uc608\ubb38</span>
+      <button class="btn-ghost" data-giu-extoggle style="padding:5px 10px;font-size:11px;">\uc811\uae30 \u25b2</button>
+    </div>
     <div data-giu-builtin></div>
     <div class="ih-head" style="margin-top:16px;">\ud83d\udcd6 \uc678\uc6b8 \uc608\ubb38 \uc800\uc7a5\uc18c</div>
     <div class="ih-hint">\ucc45\uc5d0\uc11c \uc678\uc6b0\uace0 \uc2f6\uc740 \uc608\ubb38 \uc9c1\uc811 \ud0c0\uc774\ud551 (\ud0c0\uc774\ud551 = 1\ucc28 \uc554\uae30!)</div>
@@ -1539,6 +1576,11 @@ function renderGiu(){
 
   // built-in examples
   const builtinEl = card.querySelector('[data-giu-builtin]');
+  const exToggleBtn = card.querySelector('[data-giu-extoggle]');
+  exToggleBtn.addEventListener('click', ()=>{
+    const isHidden = builtinEl.classList.toggle('hidden');
+    exToggleBtn.textContent = isHidden ? '\ud3bc\uce58\uae30 \u25bc' : '\uc811\uae30 \u25b2';
+  });
   (GIU_EXAMPLES[n]||[]).forEach(text=>{
     const item = document.createElement('div');
     item.className = 'ex-item';
@@ -1722,33 +1764,108 @@ document.getElementById('notesClose').addEventListener('click', ()=>{
 });
 
 function renderNotes(){
-  document.getElementById('notesCount').textContent = state.notes.length;
+  const pureNotes = state.notes.filter(n => n.type !== 'chunk');
+  const chunks = state.notes.filter(n => n.type === 'chunk');
+  document.getElementById('notesCount').textContent = pureNotes.length;
+  document.getElementById('chunksCount').textContent = chunks.length;
   document.getElementById('fabBadge').textContent = state.notes.length;
   const list = document.getElementById('notesList');
   list.innerHTML = '';
-  if(state.notes.length === 0){
+  if(pureNotes.length === 0){
     list.innerHTML = '<div class="notes-empty">아직 저장된 노트가 없어요. 위에서 추가해보세요!</div>';
+  }else{
+    [...pureNotes].reverse().forEach(note=>{
+      const item = document.createElement('div');
+      item.className = 'note-item';
+      const dateStr = new Date(note.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+      item.innerHTML = `
+        <button class="note-del" data-id="${note.id}">×</button>
+        <div class="note-title">${note.title}</div>
+        <div class="note-body">${note.body}</div>
+        <div class="note-date">${dateStr}</div>
+      `;
+      item.querySelector('.note-del').addEventListener('click', ()=>{
+        state.notes = state.notes.filter(n => n.id !== note.id);
+        renderNotes();
+        saveState();
+      });
+      list.appendChild(item);
+    });
+  }
+  renderChunks(chunks);
+}
+
+function renderChunks(chunks){
+  const list = document.getElementById('chunksList');
+  list.innerHTML = '';
+  if(chunks.length === 0){
+    list.innerHTML = '<div class="notes-empty">아직 저장된 청크가 없어요. 외울 덩어리 표현을 추가해보세요!</div>';
     return;
   }
-  // 최신순으로 표시
-  [...state.notes].reverse().forEach(note=>{
+  [...chunks].reverse().forEach(chunk=>{
     const item = document.createElement('div');
     item.className = 'note-item';
-    const dateStr = new Date(note.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
+    const dateStr = new Date(chunk.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
     item.innerHTML = `
-      <button class="note-del" data-id="${note.id}">×</button>
-      <div class="note-title">${note.title}</div>
-      <div class="note-body">${note.body}</div>
+      <button class="note-del" data-id="${chunk.id}">×</button>
+      <div class="note-title">${chunk.title}</div>
+      ${chunk.body ? '<div class="note-body">'+chunk.body+'</div>' : ''}
+      <div class="speak-row">
+        <button class="speak-btn" data-speak>🔊 듣기</button>
+        <span class="repeat-counter" data-wrap></span>
+        <button class="repeat-btn" data-repeat>말했어요 +1</button>
+      </div>
       <div class="note-date">${dateStr}</div>
     `;
+    item.querySelector('[data-speak]').addEventListener('click', ()=>{
+      // "~"는 발음에서 빼고 읽기
+      speakText(chunk.title.replace(/~/g, '').trim());
+    });
+    initRepeat(item.querySelector('[data-wrap]'));
+    item.querySelector('[data-repeat]').addEventListener('click', ()=>{
+      bumpRepeat(item.querySelector('[data-wrap]'));
+    });
     item.querySelector('.note-del').addEventListener('click', ()=>{
-      state.notes = state.notes.filter(n => n.id !== note.id);
+      state.notes = state.notes.filter(n => n.id !== chunk.id);
       renderNotes();
       saveState();
     });
     list.appendChild(item);
   });
 }
+
+// 청크 저장
+document.getElementById('btnSaveChunk').addEventListener('click', ()=>{
+  const textEl = document.getElementById('chunkText');
+  const meaningEl = document.getElementById('chunkMeaning');
+  const text = textEl.value.trim();
+  if(!text){ alert('청크를 입력해주세요!'); return; }
+  state.notes.push({
+    id: Date.now(),
+    type: 'chunk',
+    title: text,
+    body: meaningEl.value.trim(),
+    createdAt: new Date().toISOString()
+  });
+  textEl.value = '';
+  meaningEl.value = '';
+  saveState();
+  renderNotes();
+});
+
+// 플로팅 패널 탭 전환
+document.getElementById('floatTabNotes').addEventListener('click', ()=>{
+  document.getElementById('floatTabNotes').classList.add('active');
+  document.getElementById('floatTabChunks').classList.remove('active');
+  document.getElementById('notesView').classList.remove('hidden');
+  document.getElementById('chunksView').classList.add('hidden');
+});
+document.getElementById('floatTabChunks').addEventListener('click', ()=>{
+  document.getElementById('floatTabChunks').classList.add('active');
+  document.getElementById('floatTabNotes').classList.remove('active');
+  document.getElementById('chunksView').classList.remove('hidden');
+  document.getElementById('notesView').classList.add('hidden');
+});
 
 document.getElementById('btnSaveNote').addEventListener('click', ()=>{
   const titleEl = document.getElementById('noteTitle');
