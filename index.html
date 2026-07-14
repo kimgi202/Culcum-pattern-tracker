@@ -281,6 +281,22 @@ button:active{opacity:.75;}
   border:1px solid var(--line); background:#fff; color:var(--muted); cursor:pointer;
 }
 .float-tab.active{background:var(--sage); color:#fff; border-color:var(--sage);}
+.unit-filter{
+  width:100%; font-size:11.5px; padding:7px 9px; border-radius:6px;
+  border:1px solid var(--line); background:#fff; color:var(--ink);
+  font-family:'Pretendard Variable',sans-serif; margin-bottom:10px;
+}
+.unit-tag-badge{
+  display:inline-block; font-size:9.5px; font-weight:700; color:var(--sage);
+  background:var(--card-back); border-radius:4px; padding:1px 6px; margin-left:6px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.journal-past-item{
+  background:#fff; border:1px solid var(--line); border-radius:7px;
+  padding:10px 12px; margin-bottom:8px;
+}
+.journal-past-date{font-size:10.5px; font-weight:700; color:var(--sage); font-family:'IBM Plex Mono',monospace; margin-bottom:4px;}
+.journal-past-body{font-size:12px; color:var(--ink); white-space:pre-wrap; line-height:1.55;}
 .notes-float-body{
   overflow-y:auto; padding:12px 14px;
 }
@@ -461,14 +477,16 @@ button:active{opacity:.75;}
 
   <div class="notes-float" id="notesFloat">
     <div class="notes-float-head">
-      <div style="display:flex;gap:6px;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
         <button class="float-tab active" id="floatTabNotes">📝 노트 (<span id="notesCount">0</span>)</button>
         <button class="float-tab" id="floatTabChunks">🧩 청크 (<span id="chunksCount">0</span>)</button>
+        <button class="float-tab" id="floatTabJournal">📔 오늘</button>
       </div>
       <button class="notes-close" id="notesClose">×</button>
     </div>
     <div class="notes-float-body">
       <div id="notesView">
+        <select class="unit-filter" id="noteUnitFilter"></select>
         <div id="addNoteForm" class="add-note-form">
           <input type="text" id="noteTitle" placeholder="제목 (예: if절 + had+p.p. 짝 맞추기)">
           <textarea id="noteBody" placeholder="Claude가 준 설명 붙여넣기 or 직접 요약해서 쓰기"></textarea>
@@ -479,6 +497,7 @@ button:active{opacity:.75;}
         <div id="notesList"></div>
       </div>
       <div id="chunksView" class="hidden">
+        <select class="unit-filter" id="chunkUnitFilter"></select>
         <div class="add-note-form">
           <input type="text" id="chunkText" placeholder="청크 (예: I was supposed to ~)">
           <input type="text" id="chunkMeaning" placeholder="뜻 (예: ~하기로 되어 있었다)" style="margin-top:6px;">
@@ -487,6 +506,11 @@ button:active{opacity:.75;}
           </div>
         </div>
         <div id="chunksList"></div>
+      </div>
+      <div id="journalView" class="hidden">
+        <div class="ih-hint" style="margin-bottom:8px;">오늘 배운 표현·문장을 자유롭게 모아두세요. 입력 멈추면 자동 저장! 날짜별로 정리돼요.</div>
+        <textarea id="journalToday" placeholder="오늘 배운 것 자유롭게 메모..." style="width:100%;min-height:140px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-family:'Pretendard Variable',sans-serif;font-size:12.5px;resize:vertical;background:#fff;color:var(--ink);"></textarea>
+        <div id="journalPast" style="margin-top:12px;"></div>
       </div>
     </div>
   </div>
@@ -1780,18 +1804,48 @@ document.getElementById('notesClose').addEventListener('click', ()=>{
   document.getElementById('notesFloat').classList.remove('open');
 });
 
+const UNIT_TAG_OPTIONS = [
+  {v:'all', label:'전체 보기'},
+  {v:'common', label:'공통'},
+  ...UNITS.map(u => ({v:u.id, label:u.label})),
+  {v:'giu', label:'Grammar in Use'}
+];
+function populateUnitFilters(){
+  ['noteUnitFilter','chunkUnitFilter'].forEach(id=>{
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    UNIT_TAG_OPTIONS.forEach(o=>{
+      const opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', renderNotes);
+  });
+}
+function unitTagLabel(v){
+  const f = UNIT_TAG_OPTIONS.find(o=>o.v===v);
+  return f ? f.label : '공통';
+}
+function matchesFilter(item, filterVal){
+  if(filterVal === 'all') return true;
+  const tag = item.unit || 'common';
+  return tag === filterVal;
+}
+
 function renderNotes(){
-  const pureNotes = state.notes.filter(n => n.type !== 'chunk');
+  const pureNotes = state.notes.filter(n => n.type !== 'chunk' && n.type !== 'journal');
   const chunks = state.notes.filter(n => n.type === 'chunk');
   document.getElementById('notesCount').textContent = pureNotes.length;
   document.getElementById('chunksCount').textContent = chunks.length;
-  document.getElementById('fabBadge').textContent = state.notes.length;
+  document.getElementById('fabBadge').textContent = pureNotes.length + chunks.length;
+  const noteFilter = document.getElementById('noteUnitFilter').value || 'all';
+  const filteredNotes = pureNotes.filter(n => matchesFilter(n, noteFilter));
   const list = document.getElementById('notesList');
   list.innerHTML = '';
-  if(pureNotes.length === 0){
-    list.innerHTML = '<div class="notes-empty">아직 저장된 노트가 없어요. 위에서 추가해보세요!</div>';
+  if(filteredNotes.length === 0){
+    list.innerHTML = '<div class="notes-empty">이 단원에 저장된 노트가 없어요. 위에서 추가해보세요!</div>';
   }else{
-    [...pureNotes].reverse().forEach(note=>{
+    [...filteredNotes].reverse().forEach(note=>{
       const item = document.createElement('div');
       item.className = 'note-item';
       const dateStr = new Date(note.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
@@ -1799,7 +1853,7 @@ function renderNotes(){
         <button class="note-del" data-id="${note.id}">×</button>
         <div class="note-title">${note.title}</div>
         <div class="note-body">${note.body}</div>
-        <div class="note-date">${dateStr}</div>
+        <div class="note-date">${unitTagLabel(note.unit||'common')} · ${dateStr}</div>
       `;
       item.querySelector('.note-del').addEventListener('click', ()=>{
         state.notes = state.notes.filter(n => n.id !== note.id);
@@ -1815,11 +1869,13 @@ function renderNotes(){
 function renderChunks(chunks){
   const list = document.getElementById('chunksList');
   list.innerHTML = '';
-  if(chunks.length === 0){
-    list.innerHTML = '<div class="notes-empty">아직 저장된 청크가 없어요. 외울 덩어리 표현을 추가해보세요!</div>';
+  const chunkFilter = document.getElementById('chunkUnitFilter').value || 'all';
+  const filtered = chunks.filter(c => matchesFilter(c, chunkFilter));
+  if(filtered.length === 0){
+    list.innerHTML = '<div class="notes-empty">이 단원에 저장된 청크가 없어요. 외울 덩어리 표현을 추가해보세요!</div>';
     return;
   }
-  [...chunks].reverse().forEach(chunk=>{
+  [...filtered].reverse().forEach(chunk=>{
     const item = document.createElement('div');
     item.className = 'note-item';
     const dateStr = new Date(chunk.createdAt).toLocaleDateString('ko-KR', {month:'short', day:'numeric'});
@@ -1832,7 +1888,7 @@ function renderChunks(chunks){
         <span class="repeat-counter" data-wrap></span>
         <button class="repeat-btn" data-repeat>말했어요 +1</button>
       </div>
-      <div class="note-date">${dateStr}</div>
+      <div class="note-date">${unitTagLabel(chunk.unit||'common')} · ${dateStr}</div>
     `;
     item.querySelector('[data-speak]').addEventListener('click', ()=>{
       // "~"는 발음에서 빼고 읽기
@@ -1857,9 +1913,11 @@ document.getElementById('btnSaveChunk').addEventListener('click', ()=>{
   const meaningEl = document.getElementById('chunkMeaning');
   const text = textEl.value.trim();
   if(!text){ alert('청크를 입력해주세요!'); return; }
+  const chunkFilterVal = document.getElementById('chunkUnitFilter').value;
   state.notes.push({
     id: Date.now(),
     type: 'chunk',
+    unit: chunkFilterVal === 'all' ? 'common' : chunkFilterVal,
     title: text,
     body: meaningEl.value.trim(),
     createdAt: new Date().toISOString()
@@ -1870,18 +1928,75 @@ document.getElementById('btnSaveChunk').addEventListener('click', ()=>{
   renderNotes();
 });
 
-// 플로팅 패널 탭 전환
-document.getElementById('floatTabNotes').addEventListener('click', ()=>{
-  document.getElementById('floatTabNotes').classList.add('active');
-  document.getElementById('floatTabChunks').classList.remove('active');
-  document.getElementById('notesView').classList.remove('hidden');
-  document.getElementById('chunksView').classList.add('hidden');
-});
-document.getElementById('floatTabChunks').addEventListener('click', ()=>{
-  document.getElementById('floatTabChunks').classList.add('active');
-  document.getElementById('floatTabNotes').classList.remove('active');
-  document.getElementById('chunksView').classList.remove('hidden');
-  document.getElementById('notesView').classList.add('hidden');
+// 플로팅 패널 탭 전환 (노트/청크/오늘)
+function setFloatTab(which){
+  const tabs = {notes:'floatTabNotes', chunks:'floatTabChunks', journal:'floatTabJournal'};
+  const views = {notes:'notesView', chunks:'chunksView', journal:'journalView'};
+  Object.keys(tabs).forEach(k=>{
+    document.getElementById(tabs[k]).classList.toggle('active', k===which);
+    document.getElementById(views[k]).classList.toggle('hidden', k!==which);
+  });
+  if(which==='journal') renderJournal();
+}
+document.getElementById('floatTabNotes').addEventListener('click', ()=>setFloatTab('notes'));
+document.getElementById('floatTabChunks').addEventListener('click', ()=>setFloatTab('chunks'));
+document.getElementById('floatTabJournal').addEventListener('click', ()=>setFloatTab('journal'));
+
+// ============ 데일리 저널 (오늘 배운 것) ============
+function findJournal(dateStr){
+  return state.notes.find(n => n.type === 'journal' && n.date === dateStr);
+}
+function renderJournal(){
+  const ta = document.getElementById('journalToday');
+  const entry = findJournal(todayISO());
+  // 입력 중이 아닐 때만 덮어쓰기 (커서 유지)
+  if(document.activeElement !== ta){
+    ta.value = entry ? entry.body : '';
+  }
+  const past = state.notes
+    .filter(n => n.type === 'journal' && n.date !== todayISO() && (n.body||'').trim())
+    .sort((a,b)=> b.date.localeCompare(a.date));
+  const box = document.getElementById('journalPast');
+  box.innerHTML = '';
+  if(past.length === 0){
+    box.innerHTML = '<div class="notes-empty">지난 기록이 아직 없어요. 오늘부터 쌓아봐요!</div>';
+    return;
+  }
+  past.forEach(entry=>{
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    const d = new Date(entry.date + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('ko-KR', {month:'long', day:'numeric', weekday:'short'});
+    item.innerHTML = `
+      <button class="note-del">×</button>
+      <div class="note-title">📔 ${dateStr}</div>
+      <div class="note-body">${entry.body}</div>
+    `;
+    item.querySelector('.note-del').addEventListener('click', ()=>{
+      if(!confirm(dateStr + ' 기록을 삭제할까요?')) return;
+      state.notes = state.notes.filter(n => n !== entry);
+      saveState();
+      renderJournal();
+    });
+    box.appendChild(item);
+  });
+}
+// 저널 자동저장 (입력 멈추면 저장)
+document.getElementById('journalToday').addEventListener('change', ()=>{
+  const body = document.getElementById('journalToday').value;
+  let entry = findJournal(todayISO());
+  if(entry){
+    entry.body = body;
+  }else{
+    state.notes.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      type: 'journal',
+      date: todayISO(),
+      body,
+      createdAt: new Date().toISOString()
+    });
+  }
+  saveState();
 });
 
 document.getElementById('btnSaveNote').addEventListener('click', ()=>{
@@ -1890,8 +2005,10 @@ document.getElementById('btnSaveNote').addEventListener('click', ()=>{
   const title = titleEl.value.trim();
   const body = bodyEl.value.trim();
   if(!title && !body) return;
+  const noteFilterVal = document.getElementById('noteUnitFilter').value;
   state.notes.push({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    unit: noteFilterVal === 'all' ? 'common' : noteFilterVal,
     title: title || '(제목 없음)',
     body,
     createdAt: new Date().toISOString()
@@ -1916,6 +2033,7 @@ window.addEventListener('resize', buildSpiral);
 
 (async function init(){
   buildSpiral();
+  populateUnitFilters();
   await loadState();
   if(!PATTERNS.find(p=>p.id===state.currentId)) state.currentId = 1;
   renderStats();
