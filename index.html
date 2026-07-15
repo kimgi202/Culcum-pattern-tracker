@@ -386,6 +386,7 @@ button:active{opacity:.75;}
     <div class="mode-tab active" id="tabUnit">📖 컬컴</div>
     <div class="mode-tab" id="tabRandom">🎲 랜덤 IH</div>
     <div class="mode-tab" id="tabGiu">📘 Grammar</div>
+    <div class="mode-tab" id="tabOpic">🎤 OPIc</div>
   </div>
 
   <div class="voice-row">
@@ -457,6 +458,16 @@ button:active{opacity:.75;}
       <button class="btn-ghost" id="btnGiuNext">다음 유닛 →</button>
     </div>
     <div class="deck" id="giuDeck"></div>
+  </div>
+
+  <!-- ===== OPIc MODE ===== -->
+  <div id="opicModeView" class="hidden">
+    <div class="unit-bar" id="opicUnitBar"></div>
+    <div class="unit-nav">
+      <button class="btn-ghost" id="btnOpicPrev">← 이전 주제</button>
+      <button class="btn-ghost" id="btnOpicNext">다음 주제 →</button>
+    </div>
+    <div class="deck multi" id="opicDeck"></div>
   </div>
 
   <div class="checkpoint">
@@ -1529,6 +1540,29 @@ const GIU_EXAMPLES = {
   50: ["Do you know where the nearest station is?","Can you tell me what time it starts?","I don't know why she changed her mind."],
 };
 
+const OPTIC_QUESTIONS = [
+  {id:1, topic:"Daily Routine & After Work", kr:"퇴근 후 일상", qs:[
+    {en:"Tell me about your daily routine after work.", kr:"퇴근 후 보통 뭘 하나요?"},
+    {en:"Why did you choose F45 as your workout?", kr:"왜 F45를 선택했나요?"},
+    {en:"How do you feel when you work out?", kr:"운동할 때 기분이 어떤가요?"},
+    {en:"What's different about your schedule now?", kr:"요즘 스케줄에서 뭐가 달라졌나요?"}]},
+  {id:2, topic:"Past vs Present", kr:"과거 vs 현재 비교", qs:[
+    {en:"How has your free time changed in the past few months?", kr:"최근 몇 달 동안 자유시간이 어떻게 달라졌어요?"},
+    {en:"Before when you were working constantly, what was the hardest part?", kr:"계속 일할 때 가장 힘든 부분이 뭐였어요?"},
+    {en:"Can you compare your lifestyle from 6 months ago to now?", kr:"6개월 전 생활과 지금을 비교해줄 수 있어요?"},
+    {en:"What surprised you most about having free time again?", kr:"여유시간이 생긴 게 가장 큰 변화가 뭐였어요?"}]},
+  {id:3, topic:"Work-Life Balance & Impact", kr:"일과 여유의 영향", qs:[
+    {en:"Why is working out so important to you right now?", kr:"요즘 운동이 왜 그렇게 중요해요?"},
+    {en:"How has having more free time affected your mental state?", kr:"여유시간이 생긴 게 정신 상태에 어떻게 영향을 미쳤어요?"},
+    {en:"Do you think your work-life balance will stay this way?", kr:"이런 일과 여유의 균형이 계속될 거 같아요?"},
+    {en:"What do you think is the best way to maintain work-life balance?", kr:"일과 여유의 균형을 유지하는 가장 좋은 방법이 뭐라고 생각해요?"}]},
+  {id:4, topic:"Future Plans & Personal Goals", kr:"앞으로의 계획", qs:[
+    {en:"What are your plans after this project ends completely?", kr:"이 프로젝트가 완전히 끝나면 뭘 할 계획이에요?"},
+    {en:"If you could change one thing about your past work situation, what would it be?", kr:"과거 업무 상황에서 하나 바꿀 수 있다면 뭘 바꾸고 싶어요?"},
+    {en:"How do you see yourself in a year from now?", kr:"1년 뒤 자신의 모습이 어떨 거 같아요?"},
+    {en:"What's the biggest lesson you learned from this experience?", kr:"이 경험에서 배운 가장 큰 교훈이 뭐예요?"}]},
+];
+
 function giuState(){
   if(!state.giu) state.giu = {};
   const g = state.giu;
@@ -1737,26 +1771,101 @@ document.getElementById('btnGiuNext').addEventListener('click', ()=>{
 });
 // ===================== END GRAMMAR IN USE =====================
 
+// ===================== OPIc MODE =====================
+let currentOpicIndex = 0;
+
+function renderOpicBar(){
+  const bar = document.getElementById('opicUnitBar');
+  bar.innerHTML = '';
+  OPTIC_QUESTIONS.forEach((q, idx)=>{
+    const chip = document.createElement('div');
+    chip.className = 'unit-chip' + (idx === currentOpicIndex ? ' active' : '');
+    chip.textContent = q.topic;
+    chip.onclick = ()=>{ currentOpicIndex = idx; renderOpicDeck(); };
+    bar.appendChild(chip);
+  });
+}
+
+function renderOpicDeck(){
+  renderOpicBar();
+  const q = OPTIC_QUESTIONS[currentOpicIndex];
+  const deck = document.getElementById('opicDeck');
+  deck.innerHTML = '';
+  
+  q.qs.forEach((question, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-num">${idx + 1}</div>
+      </div>
+      <div class="pattern-en" style="font-size:16px;line-height:1.5;">${question.en}</div>
+      <div class="pattern-kr">${question.kr}</div>
+      <div class="speak-row" style="margin-top:14px;">
+        <button class="speak-btn" data-speak-q>🔊 듣고 따라 말하기</button>
+        <span class="repeat-counter" data-repeat-wrap-q></span>
+        <button class="repeat-btn" data-repeat-btn-q>말했어요 +1</button>
+      </div>
+      <textarea class="attempt" placeholder="질문에 대한 답변을 자유롭게 써보세요..." style="margin-top:12px;"></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" data-mark-done>완료 (+1)</button>
+      </div>
+    `;
+    
+    wireRepeatCounter(
+      card, 
+      '[data-speak-q]', 
+      '[data-repeat-wrap-q]', 
+      '[data-repeat-count-q]', 
+      '[data-repeat-btn-q]', 
+      question.en
+    );
+    
+    card.querySelector('[data-mark-done]').addEventListener('click', ()=>{
+      markPracticed(100 + currentOpicIndex);
+    });
+    
+    deck.appendChild(card);
+  });
+}
+
+document.getElementById('btnOpicPrev').addEventListener('click', ()=>{
+  currentOpicIndex = (currentOpicIndex - 1 + OPTIC_QUESTIONS.length) % OPTIC_QUESTIONS.length;
+  renderOpicDeck();
+});
+
+document.getElementById('btnOpicNext').addEventListener('click', ()=>{
+  currentOpicIndex = (currentOpicIndex + 1) % OPTIC_QUESTIONS.length;
+  renderOpicDeck();
+});
+// ===================== END OPIc MODE =====================
+
 function setMode(newMode){
   mode = newMode;
   document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
   document.getElementById('tabRandom').classList.toggle('active', mode==='random');
   document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
+  document.getElementById('tabOpic').classList.toggle('active', mode==='opic');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('randomModeView').classList.toggle('hidden', mode!=='random');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
+  document.getElementById('opicModeView').classList.toggle('hidden', mode!=='opic');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
     : mode==='random'
     ? "무작위 패턴 뽑기 · IH 확장까지 한 번에"
-    : "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장";
+    : mode==='giu'
+    ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
+    : "OPIc IH 질문 · 20일 IH 스피킹 준비";
   if(mode==='unit') renderUnitDeck();
   else if(mode==='random') renderRandomDeck();
-  else renderGiu();
+  else if(mode==='giu') renderGiu();
+  else if(mode==='opic') renderOpicDeck();
 }
 document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
 document.getElementById('tabRandom').addEventListener('click', ()=>setMode('random'));
+document.getElementById('tabOpic').addEventListener('click', ()=>setMode('opic'));
 
 // ---- STATS & GRID (공통) ----
 function renderStats(){
