@@ -1382,9 +1382,12 @@ function renderCompareList(wrap, patternId){
     const box = document.createElement('div');
     box.className = 'compare-item';
     box.innerHTML = `
-      <button class="compare-del" data-idx="${realIdx}">×</button>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button class="compare-del" data-idx="${realIdx}" style="flex:0 0 auto;">×</button>
+        <button class="compare-edit" data-idx="${realIdx}" style="flex:0 0 auto;background:var(--coral);color:#fff;border:none;cursor:pointer;font-size:11px;padding:6px 10px;border-radius:6px;font-weight:600;">✏️ 수정</button>
+      </div>
       <div class="compare-row compare-mine"><span class="compare-tag">❌ 내 문장</span>${item.mine}</div>
-      <div class="compare-row compare-fixed"><span class="compare-tag">✅ 교정본</span>${item.corrected}</div>
+      <div class="compare-row compare-fixed"><span class="compare-tag">✅ 교정본</span><span data-corrected-text>${item.corrected}</span></div>
       <div class="speak-row">
         <button class="speak-btn" data-speak-btn>🔊 교정본 듣고 따라 말하기</button>
         <span class="repeat-counter" data-repeat-wrap></span>
@@ -1398,7 +1401,41 @@ function renderCompareList(wrap, patternId){
       renderCompareList(wrap, patternId);
       saveState();
     });
+    box.querySelector('.compare-edit').addEventListener('click', ()=>{
+      enterEditMode(box, patternId, realIdx, wrap);
+    });
     listEl.appendChild(box);
+  });
+}
+
+function enterEditMode(box, patternId, itemIdx, wrap){
+  const correctedSpan = box.querySelector('[data-corrected-text]');
+  const currentText = correctedSpan.textContent;
+
+  const editDiv = document.createElement('div');
+  editDiv.style.marginTop = '8px';
+  editDiv.innerHTML = `
+    <textarea class="corrected-input" data-edit-input style="min-height:50px;">${currentText}</textarea>
+    <div class="btn-row" style="gap:6px;margin-top:8px;">
+      <button class="btn-primary" data-edit-save style="flex:1;">저장</button>
+      <button class="btn-ghost" data-edit-cancel style="flex:1;">취소</button>
+    </div>
+  `;
+
+  box.appendChild(editDiv);
+  const editInput = editDiv.querySelector('[data-edit-input]');
+  editInput.focus();
+
+  editDiv.querySelector('[data-edit-save]').addEventListener('click', ()=>{
+    const newText = editInput.value.trim();
+    if(!newText) return;
+    state.corrections[patternId][itemIdx].corrected = newText;
+    saveState();
+    renderCompareList(wrap, patternId);
+  });
+
+  editDiv.querySelector('[data-edit-cancel]').addEventListener('click', ()=>{
+    editDiv.remove();
   });
 }
 
@@ -1695,6 +1732,38 @@ function renderGiu(){
     }).catch(()=>{ alert(msg); });
   });
 
+  // corrections - 수정 모드 진입 함수
+  function enterGiuEditMode(box, unitNum, itemIdx, renderCallback){
+    const correctedSpan = box.querySelector('[data-corrected-text]');
+    const currentText = correctedSpan.textContent;
+
+    const editDiv = document.createElement('div');
+    editDiv.style.marginTop = '8px';
+    editDiv.innerHTML = `
+      <textarea class="corrected-input" data-edit-input style="min-height:50px;">${currentText}</textarea>
+      <div class="btn-row" style="gap:6px;margin-top:8px;">
+        <button class="btn-primary" data-edit-save style="flex:1;">저장</button>
+        <button class="btn-ghost" data-edit-cancel style="flex:1;">취소</button>
+      </div>
+    `;
+
+    box.appendChild(editDiv);
+    const editInput = editDiv.querySelector('[data-edit-input]');
+    editInput.focus();
+
+    editDiv.querySelector('[data-edit-save]').addEventListener('click', ()=>{
+      const newText = editInput.value.trim();
+      if(!newText) return;
+      g.corrections[unitNum][itemIdx].corrected = newText;
+      saveState();
+      renderCallback();
+    });
+
+    editDiv.querySelector('[data-edit-cancel]').addEventListener('click', ()=>{
+      editDiv.remove();
+    });
+  }
+
   // corrections
   function renderGiuCorrList(){
     const listEl = card.querySelector('[data-giu-corrlist]');
@@ -1704,13 +1773,19 @@ function renderGiu(){
       const realIdx = items.length-1-revIdx;
       const box = document.createElement('div');
       box.className = 'compare-item';
-      box.innerHTML = '<button class="compare-del">\u00d7</button>'
+      box.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px;">'
+        + '<button class="compare-del" style="flex:0 0 auto;">\u00d7</button>'
+        + '<button class="compare-edit" data-idx="'+realIdx+'" style="flex:0 0 auto;background:var(--coral);color:#fff;border:none;cursor:pointer;font-size:11px;padding:6px 10px;border-radius:6px;font-weight:600;">\u270f\ufe0f \uc218\uc815</button>'
+        + '</div>'
         + '<div class="compare-row compare-mine"><span class="compare-tag">\u274c \ub0b4 \ubb38\uc7a5</span>'+item.mine+'</div>'
-        + '<div class="compare-row compare-fixed"><span class="compare-tag">\u2705 \uad50\uc815\ubcf8</span>'+item.corrected+'</div>'
+        + '<div class="compare-row compare-fixed"><span class="compare-tag">\u2705 \uad50\uc815\ubcf8</span><span data-corrected-text>'+item.corrected+'</span></div>'
         + '<div class="compare-date">'+item.date+'</div>';
       box.insertBefore(makeSpeakRow(item.corrected), box.querySelector('.compare-date'));
       box.querySelector('.compare-del').addEventListener('click', ()=>{
         g.corrections[n].splice(realIdx,1); saveState(); renderGiuCorrList();
+      });
+      box.querySelector('.compare-edit').addEventListener('click', ()=>{
+        enterGiuEditMode(box, n, realIdx, renderGiuCorrList);
       });
       listEl.appendChild(box);
     });
