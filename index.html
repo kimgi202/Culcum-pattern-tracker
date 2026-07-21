@@ -387,6 +387,7 @@ button:active{opacity:.75;}
     <div class="mode-tab active" id="tabUnit">📖 컬컴</div>
     <div class="mode-tab" id="tabRandom">🎲 랜덤 IH</div>
     <div class="mode-tab" id="tabGiu">📘 Grammar</div>
+    <div class="mode-tab" id="tabFreeWriting">✨ 영작 연습</div>
   </div>
 
   <div class="voice-row">
@@ -458,6 +459,49 @@ button:active{opacity:.75;}
       <button class="btn-ghost" id="btnGiuNext">다음 유닛 →</button>
     </div>
     <div class="deck" id="giuDeck"></div>
+  </div>
+
+  <!-- ===== FREE WRITING MODE ===== -->
+  <div id="freeWritingModeView" class="hidden">
+    <div class="card">
+      <div class="card-head">🗣️ 한국말 입력</div>
+      <textarea id="fwKorean" placeholder="한국말로 자유롭게 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-head">✏️ 내 영작</div>
+      <textarea id="fwEnglish" placeholder="영어로 옮겨서 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+      
+      <div style="margin-top:12px; padding:12px; background:var(--card-back); border-radius:6px;">
+        <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">📝 교정된 문장</div>
+        <div id="fwCorrected" style="min-height:50px; line-height:1.6; color:var(--ink); font-size:14px; word-break:break-word;">
+          (저장 후 교정된 문장이 여기 나타납니다)
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="fwSave">💾 저장</button>
+        <button class="btn-ghost" id="fwPlayTts">▶️ TTS 듣기</button>
+        <button class="btn-ghost" id="fwReset">🔄 초기화</button>
+        <button class="btn-ghost" id="fwEdit">✏️ 수정</button>
+      </div>
+
+      <div style="margin-top:12px; padding:10px; background:rgba(91, 91, 214, 0.08); border-radius:6px; border:1px solid var(--sage-dim);">
+        <div style="font-size:12px; font-weight:600; color:var(--sage); margin-bottom:6px;">🎤 따라 말하기</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:13px; color:var(--muted);">반복 횟수:</span>
+          <input type="number" id="fwPlayCount" min="0" value="0" style="width:60px; padding:6px; border:1px solid var(--line); border-radius:4px; font-size:13px;">
+          <span style="font-size:12px; color:var(--muted);">회</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-head">📋 저장된 영작들</div>
+      <div id="fwList" style="max-height:400px; overflow-y:auto;">
+        <div style="padding:20px; text-align:center; color:var(--muted); font-size:13px;">아직 저장된 영작이 없습니다.</div>
+      </div>
+    </div>
   </div>
 
   <div class="checkpoint">
@@ -1053,7 +1097,7 @@ try{
   console.error("Supabase client init failed — falling back to local-only mode", e);
 }
 
-let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0, notes:[], corrections:{}, attempts:{}, giu:{} };
+let state = { counts:{}, todayDate:null, todayCount:0, currentId:1, ihTotal:0, notes:[], corrections:{}, attempts:{}, giu:{}, freeWritings:[] };
 let mode = "unit"; // "unit" | "random"
 let currentUnitIndex = 0;
 
@@ -1081,6 +1125,7 @@ async function loadState(){
       state.corrections = data.corrections || {};
       state.attempts = data.attempts || {};
       state.giu = data.giu || {};
+      state.freeWritings = data.free_writings || [];
     }
   }catch(e){ console.error("load failed", e); }
   if(state.todayDate !== todayISO()){
@@ -1123,6 +1168,7 @@ async function saveState(){
         corrections: state.corrections,
         attempts: state.attempts,
         giu: state.giu,
+        free_writings: state.freeWritings,
         updated_at: new Date().toISOString()
       });
     if(error) throw error;
@@ -1818,21 +1864,27 @@ function setMode(newMode){
   document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
   document.getElementById('tabRandom').classList.toggle('active', mode==='random');
   document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
+  document.getElementById('tabFreeWriting').classList.toggle('active', mode==='freewriting');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('randomModeView').classList.toggle('hidden', mode!=='random');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
+  document.getElementById('freeWritingModeView').classList.toggle('hidden', mode!=='freewriting');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
     : mode==='random'
     ? "무작위 패턴 뽑기 · IH 확장까지 한 번에"
-    : "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장";
+    : mode==='giu'
+    ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
+    : "한국말 → 영작 → 발음 따라하기 · 실시간 영작 일지";
   if(mode==='unit') renderUnitDeck();
   else if(mode==='random') renderRandomDeck();
-  else renderGiu();
+  else if(mode==='giu') renderGiu();
+  else if(mode==='freewriting') renderFreeWriting();
 }
 document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
 document.getElementById('tabRandom').addEventListener('click', ()=>setMode('random'));
+document.getElementById('tabFreeWriting').addEventListener('click', ()=>setMode('freewriting'));
 
 // ---- STATS & GRID (공통) ----
 function renderStats(){
@@ -2104,6 +2156,121 @@ function buildSpiral(){
     h.className = 'hole';
     el.appendChild(h);
   }
+}
+
+// ========== FREE WRITING MODE ==========
+function renderFreeWriting(){
+  const korInput = document.getElementById('fwKorean');
+  const engInput = document.getElementById('fwEnglish');
+  const correctedDiv = document.getElementById('fwCorrected');
+  const listDiv = document.getElementById('fwList');
+  const playCountInput = document.getElementById('fwPlayCount');
+
+  // 버튼 이벤트
+  document.getElementById('fwSave').onclick = ()=>{
+    const korean = korInput.value.trim();
+    const english = engInput.value.trim();
+    if(!korean || !english){
+      alert('한국말과 영작을 모두 입력해주세요.');
+      return;
+    }
+    const item = {
+      korean,
+      english,
+      corrected: english, // 처음엔 영작 그대로를 교정된 문장으로
+      date: new Date().toLocaleString('ko-KR'),
+      playCount: 0
+    };
+    state.freeWritings.unshift(item);
+    saveState();
+    correctedDiv.textContent = item.corrected;
+    playCountInput.value = 0;
+    renderFreeWritingList();
+  };
+
+  document.getElementById('fwPlayTts').onclick = ()=>{
+    const corrected = correctedDiv.textContent;
+    if(corrected === '(저장 후 교정된 문장이 여기 나타납니다)'){
+      alert('먼저 저장해주세요.');
+      return;
+    }
+    speak(corrected);
+    playCountInput.value = parseInt(playCountInput.value || 0) + 1;
+  };
+
+  document.getElementById('fwReset').onclick = ()=>{
+    if(confirm('정말 초기화하시겠어요?')){
+      korInput.value = '';
+      engInput.value = '';
+      correctedDiv.textContent = '(저장 후 교정된 문장이 여기 나타납니다)';
+      playCountInput.value = 0;
+    }
+  };
+
+  document.getElementById('fwEdit').onclick = ()=>{
+    const newCorrected = prompt('교정된 문장을 입력해주세요:', correctedDiv.textContent);
+    if(newCorrected !== null && newCorrected.trim()){
+      correctedDiv.textContent = newCorrected.trim();
+      // 마지막 저장된 항목 업데이트
+      if(state.freeWritings.length > 0){
+        state.freeWritings[0].corrected = newCorrected.trim();
+        saveState();
+      }
+    }
+  };
+
+  renderFreeWritingList();
+}
+
+function renderFreeWritingList(){
+  const listDiv = document.getElementById('fwList');
+  if(state.freeWritings.length === 0){
+    listDiv.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted); font-size:13px;">아직 저장된 영작이 없습니다.</div>';
+    return;
+  }
+  listDiv.innerHTML = state.freeWritings.map((item, idx)=>`
+    <div style="padding:12px; border-bottom:1px solid var(--line); background:var(--card); margin-bottom:8px; border-radius:6px;">
+      <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">📅 ${item.date}</div>
+      <div style="font-size:12px; margin-bottom:6px;">
+        <strong>한국말:</strong> ${escapeHtml(item.korean)}
+      </div>
+      <div style="font-size:12px; margin-bottom:6px;">
+        <strong>내 영작:</strong> ${escapeHtml(item.english)}
+      </div>
+      <div style="font-size:12px; margin-bottom:6px; color:var(--sage);">
+        <strong>✓ 교정:</strong> ${escapeHtml(item.corrected)}
+      </div>
+      <div style="font-size:11px; color:var(--muted);">
+        🎤 발음 학습: ${item.playCount}회
+      </div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <button class="btn-ghost" style="flex:1; padding:6px; font-size:11px;" onclick="playFwItem(${idx})">▶️ TTS</button>
+        <button class="btn-ghost" style="flex:1; padding:6px; font-size:11px;" onclick="deleteFwItem(${idx})">🗑️ 삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function playFwItem(idx){
+  if(state.freeWritings[idx]){
+    speak(state.freeWritings[idx].corrected);
+    state.freeWritings[idx].playCount++;
+    saveState();
+    renderFreeWritingList();
+  }
+}
+
+function deleteFwItem(idx){
+  if(confirm('정말 삭제하시겠어요?')){
+    state.freeWritings.splice(idx, 1);
+    saveState();
+    renderFreeWritingList();
+  }
+}
+
+function escapeHtml(text){
+  const map = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#039;"};
+  return text.replace(/[&<>"']/g, m => map[m]);
 }
 window.addEventListener('resize', buildSpiral);
 
