@@ -464,41 +464,21 @@ button:active{opacity:.75;}
   <!-- ===== FREE WRITING MODE ===== -->
   <div id="freeWritingModeView" class="hidden">
     <div class="card">
-      <div class="card-head">🗣️ 한국말 입력</div>
+      <div class="card-head">🗣️ 한국말</div>
       <textarea id="fwKorean" placeholder="한국말로 자유롭게 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
-    </div>
 
-    <div class="card" style="margin-top:14px;">
-      <div class="card-head">✏️ 내 영작</div>
+      <div class="card-head" style="margin-top:14px;">✏️ 영작</div>
       <textarea id="fwEnglish" placeholder="영어로 옮겨서 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
-      
-      <div style="margin-top:12px; padding:12px; background:var(--card-back); border-radius:6px;">
-        <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">📝 교정된 문장</div>
-        <div id="fwCorrected" style="min-height:50px; line-height:1.6; color:var(--ink); font-size:14px; word-break:break-word;">
-          (저장 후 교정된 문장이 여기 나타납니다)
-        </div>
-      </div>
 
-      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px; margin-top:12px;">
         <button class="btn-ghost" id="fwSave">💾 저장</button>
-        <button class="btn-ghost" id="fwPlayTts">▶️ TTS 듣기</button>
         <button class="btn-ghost" id="fwReset">🔄 초기화</button>
-        <button class="btn-ghost" id="fwEdit">✏️ 수정</button>
-      </div>
-
-      <div style="margin-top:12px; padding:10px; background:rgba(91, 91, 214, 0.08); border-radius:6px; border:1px solid var(--sage-dim);">
-        <div style="font-size:12px; font-weight:600; color:var(--sage); margin-bottom:6px;">🎤 따라 말하기</div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:13px; color:var(--muted);">반복 횟수:</span>
-          <input type="number" id="fwPlayCount" min="0" value="0" style="width:60px; padding:6px; border:1px solid var(--line); border-radius:4px; font-size:13px;">
-          <span style="font-size:12px; color:var(--muted);">회</span>
-        </div>
       </div>
     </div>
 
     <div class="card" style="margin-top:14px;">
       <div class="card-head">📋 저장된 영작들</div>
-      <div id="fwList" style="max-height:400px; overflow-y:auto;">
+      <div id="fwList" style="max-height:500px; overflow-y:auto;">
         <div style="padding:20px; text-align:center; color:var(--muted); font-size:13px;">아직 저장된 영작이 없습니다.</div>
       </div>
     </div>
@@ -2162,9 +2142,7 @@ function buildSpiral(){
 function renderFreeWriting(){
   const korInput = document.getElementById('fwKorean');
   const engInput = document.getElementById('fwEnglish');
-  const correctedDiv = document.getElementById('fwCorrected');
   const listDiv = document.getElementById('fwList');
-  const playCountInput = document.getElementById('fwPlayCount');
 
   // 버튼 이벤트
   document.getElementById('fwSave').onclick = ()=>{
@@ -2177,45 +2155,21 @@ function renderFreeWriting(){
     const item = {
       korean,
       english,
-      corrected: english, // 처음엔 영작 그대로를 교정된 문장으로
+      corrected: english, // 처음엔 영작 그대로
       date: new Date().toLocaleString('ko-KR'),
       playCount: 0
     };
     state.freeWritings.unshift(item);
     saveState();
-    correctedDiv.textContent = item.corrected;
-    playCountInput.value = 0;
+    korInput.value = '';
+    engInput.value = '';
     renderFreeWritingList();
-  };
-
-  document.getElementById('fwPlayTts').onclick = ()=>{
-    const corrected = correctedDiv.textContent;
-    if(corrected === '(저장 후 교정된 문장이 여기 나타납니다)'){
-      alert('먼저 저장해주세요.');
-      return;
-    }
-    speakText(corrected);
-    playCountInput.value = parseInt(playCountInput.value || 0) + 1;
   };
 
   document.getElementById('fwReset').onclick = ()=>{
     if(confirm('정말 초기화하시겠어요?')){
       korInput.value = '';
       engInput.value = '';
-      correctedDiv.textContent = '(저장 후 교정된 문장이 여기 나타납니다)';
-      playCountInput.value = 0;
-    }
-  };
-
-  document.getElementById('fwEdit').onclick = ()=>{
-    const newCorrected = prompt('교정된 문장을 입력해주세요:', correctedDiv.textContent);
-    if(newCorrected !== null && newCorrected.trim()){
-      correctedDiv.textContent = newCorrected.trim();
-      // 마지막 저장된 항목 업데이트
-      if(state.freeWritings.length > 0){
-        state.freeWritings[0].corrected = newCorrected.trim();
-        saveState();
-      }
     }
   };
 
@@ -2231,21 +2185,27 @@ function renderFreeWritingList(){
   listDiv.innerHTML = state.freeWritings.map((item, idx)=>`
     <div style="padding:12px; border-bottom:1px solid var(--line); background:var(--card); margin-bottom:8px; border-radius:6px;">
       <div style="font-size:11px; color:var(--muted); margin-bottom:6px;">📅 ${item.date}</div>
+      
       <div style="font-size:12px; margin-bottom:6px;">
-        <strong>한국말:</strong> ${escapeHtml(item.korean)}
+        <strong>한:</strong> ${escapeHtml(item.korean)}
       </div>
+      
       <div style="font-size:12px; margin-bottom:6px;">
-        <strong>내 영작:</strong> ${escapeHtml(item.english)}
+        <strong>영:</strong> ${escapeHtml(item.english)}
       </div>
-      <div style="font-size:12px; margin-bottom:6px; color:var(--sage);">
-        <strong>✓ 교정:</strong> ${escapeHtml(item.corrected)}
+      
+      <div style="font-size:12px; margin-bottom:8px; padding:8px; background:rgba(91, 91, 214, 0.08); border-radius:4px;">
+        <strong style="color:var(--sage);">✓ 교정:</strong> ${escapeHtml(item.corrected)}
+        <button class="btn-ghost" style="margin-left:6px; padding:2px 8px; font-size:11px;" onclick="editFwItem(${idx})">✏️ 수정</button>
       </div>
-      <div style="font-size:11px; color:var(--muted);">
-        🎤 발음 학습: ${item.playCount}회
-      </div>
-      <div style="display:flex; gap:6px; margin-top:8px;">
+      
+      <div style="display:flex; gap:6px;">
         <button class="btn-ghost" style="flex:1; padding:6px; font-size:11px;" onclick="playFwItem(${idx})">▶️ TTS</button>
         <button class="btn-ghost" style="flex:1; padding:6px; font-size:11px;" onclick="deleteFwItem(${idx})">🗑️ 삭제</button>
+      </div>
+      
+      <div style="font-size:11px; color:var(--muted); margin-top:6px;">
+        🎤 반복: ${item.playCount}회
       </div>
     </div>
   `).join('');
@@ -2255,6 +2215,15 @@ function playFwItem(idx){
   if(state.freeWritings[idx]){
     speakText(state.freeWritings[idx].corrected);
     state.freeWritings[idx].playCount++;
+    saveState();
+    renderFreeWritingList();
+  }
+}
+
+function editFwItem(idx){
+  const newCorrected = prompt('교정된 문장을 입력해주세요:', state.freeWritings[idx].corrected);
+  if(newCorrected !== null && newCorrected.trim()){
+    state.freeWritings[idx].corrected = newCorrected.trim();
     saveState();
     renderFreeWritingList();
   }
