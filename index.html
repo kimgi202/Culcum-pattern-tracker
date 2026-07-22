@@ -2194,7 +2194,7 @@ function renderFreeWriting(){
       alert('먼저 저장해주세요.');
       return;
     }
-    speak(corrected);
+    speakText(corrected);
     playCountInput.value = parseInt(playCountInput.value || 0) + 1;
   };
 
@@ -2253,7 +2253,7 @@ function renderFreeWritingList(){
 
 function playFwItem(idx){
   if(state.freeWritings[idx]){
-    speak(state.freeWritings[idx].corrected);
+    speakText(state.freeWritings[idx].corrected);
     state.freeWritings[idx].playCount++;
     saveState();
     renderFreeWritingList();
