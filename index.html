@@ -67,6 +67,18 @@ body{
   padding:4px 10px;
 }
 
+/* card color picker */
+.theme-row{display:flex; align-items:center; gap:8px; margin-top:12px;}
+.card-colors{display:flex; gap:5px; justify-content:flex-end; margin-top:7px;}
+.color-dot{width:16px; height:16px; border-radius:50%; border:1.5px solid rgba(0,0,0,.13); cursor:pointer; flex:0 0 auto; transition:transform .1s;}
+.color-dot:hover{transform:scale(1.2);}
+.color-dot.active{border-color:var(--ink); box-shadow:inset 0 0 0 2px #fff;}
+
+/* daily question */
+.dq-chunk{color:var(--coral); font-weight:700;}
+.dq-qtext{font-size:15px; font-weight:700; color:var(--ink); line-height:1.45; cursor:pointer;}
+.dq-meta{font-size:11px; color:var(--muted-2); font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+
 /* mode tabs */
 .mode-tabs{display:flex; gap:8px; margin-top:18px;}
 .voice-row{
@@ -388,6 +400,12 @@ button:active{opacity:.75;}
     <div class="mode-tab" id="tabRandom">🎲 랜덤 IH</div>
     <div class="mode-tab" id="tabGiu">📘 Grammar</div>
     <div class="mode-tab" id="tabFreeWriting">✨ 영작 연습</div>
+    <div class="mode-tab" id="tabDq">💬 데일리Q</div>
+  </div>
+
+  <div class="theme-row">
+    <span class="voice-label">🎨 테마</span>
+    <div id="themeDots" style="display:flex;gap:5px;"></div>
   </div>
 
   <div class="voice-row">
@@ -484,18 +502,28 @@ button:active{opacity:.75;}
     </div>
   </div>
 
-  <div class="checkpoint">
-    <div class="checkpoint-head" id="cpHead">
-      <div class="checkpoint-title">✅ 확장 체크포인트 (오늘 정리한 것)</div>
-      <div class="chev" id="cpChev">▶</div>
+  <!-- ===== DAILY QUESTION MODE ===== -->
+  <div id="dqModeView" class="hidden">
+    <div class="unit-bar" id="dqSetBar"></div>
+    <div class="card" style="margin-top:12px;">
+      <div class="checkpoint-head" id="dqAddHead" style="padding:0;">
+        <div class="checkpoint-title">➕ 새 세트 추가 (매주 새 주제 여기로!)</div>
+        <div class="chev" id="dqAddChev">▶</div>
+      </div>
+      <div class="checkpoint-body" id="dqAddBody" style="padding:10px 0 0;">
+        <div class="ih-hint">① 새 Daily Question PDF나 사진을 Claude 채팅에 올리고 아래 버튼으로 복사한 요청을 붙여넣기 → ② Claude가 준 JSON을 아래 칸에 붙여넣고 저장 → 끝! 재배포 필요 없어요.</div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn-check" id="dqCopyPrompt">📋 Claude 변환 요청 복사</button>
+        </div>
+        <div class="copy-toast" id="dqPromptToast">복사됐어요! PDF와 함께 Claude에게 붙여넣어 보세요 ✅</div>
+        <textarea class="attempt" id="dqJsonInput" placeholder='Claude가 변환해준 JSON을 여기에 붙여넣으세요' style="min-height:100px; font-family:'IBM Plex Mono',monospace; font-size:11.5px;"></textarea>
+        <div class="btn-row">
+          <button class="btn-primary" id="dqJsonSave">세트 저장</button>
+        </div>
+        <div id="dqCustomList" style="margin-top:10px;"></div>
+      </div>
     </div>
-    <div class="checkpoint-body" id="cpBody">
-      <div class="cp-item"><b>should have + p.p.</b> — have 뒤엔 반드시 과거분사(원형 X). would have는 if절 필수, should have는 단독 후회.</div>
-      <div class="cp-item"><b>동명사구 주어 vs While + 동명사</b> — 동명사가 주어면 While 없이 단독으로.</div>
-      <div class="cp-item"><b>목적의 to부정사</b> — "~하기 위해서"는 to + 동사원형만. at/when/while로 대체 불가.</div>
-      <div class="cp-item"><b>feel + 형용사</b> — feel 뒤엔 항상 형용사 (동사원형/명사 X).</div>
-      <div class="cp-item"><b>감정 단어 + 이유</b> — curious, excited, worried 등은 about/because로 대상·이유를 붙여야 자연스러움.</div>
-    </div>
+    <div class="deck" id="dqDeck"></div>
   </div>
 
   <button class="notes-fab" id="notesFab" title="메타인지 노트">📝<span class="fab-badge" id="fabBadge">0</span></button>
@@ -511,6 +539,13 @@ button:active{opacity:.75;}
     </div>
     <div class="notes-float-body">
       <div id="notesView">
+        <div class="checkpoint" style="margin:0 0 10px;">
+          <div class="checkpoint-head" id="cpHead">
+            <div class="checkpoint-title">✅ 확장 체크포인트</div>
+            <div class="chev" id="cpChev">▶</div>
+          </div>
+          <div class="checkpoint-body" id="cpBody"></div>
+        </div>
         <select class="unit-filter" id="noteUnitFilter"></select>
         <div id="addNoteForm" class="add-note-form">
           <input type="text" id="noteTitle" placeholder="제목 (예: if절 + had+p.p. 짝 맞추기)">
@@ -1274,6 +1309,78 @@ function wireRepeatCounter(scopeEl, speakBtnSel, wrapSel, countSel, repeatBtnSel
   scopeEl.querySelector(repeatBtnSel).addEventListener('click', ()=> bumpRepeat(wrapEl));
 }
 
+// ---- 전체 테마 (카드 색과 깔맞춤 · localStorage에 저장) ----
+const THEMES = [
+  {name:"라벤더", dot:"#C3C3F0", vars:{"--bg":"#EEF0FB","--card":"#FBFBFF","--card-back":"#E3E4F7","--ink":"#26244A","--muted":"#6E6C96","--muted-2":"#A3A1C4","--sage":"#5B5BD6","--sage-dim":"#C3C3F0","--coral":"#8B5CF6","--line":"#DBDBF0","--hole":"#EEF0FB","--hole-ring":"#C6C6E8"}},
+  {name:"크림",   dot:"#EAD8A5", vars:{"--bg":"#F7F1E0","--card":"#FFFDF6","--card-back":"#EDE3C9","--ink":"#493C22","--muted":"#94856A","--muted-2":"#C2B599","--sage":"#B98A24","--sage-dim":"#EAD8A5","--coral":"#D9772F","--line":"#E9DFC5","--hole":"#F7F1E0","--hole-ring":"#DBCEA4"}},
+  {name:"핑크",   dot:"#F0C2D2", vars:{"--bg":"#FBEBEF","--card":"#FFFAFB","--card-back":"#F3DBE1","--ink":"#4A2533","--muted":"#966D7B","--muted-2":"#C4A0AC","--sage":"#D45585","--sage-dim":"#F0C2D2","--coral":"#E0705F","--line":"#F0DAE0","--hole":"#FBEBEF","--hole-ring":"#E8C5CF"}},
+  {name:"하늘",   dot:"#BAD5ED", vars:{"--bg":"#E8F2FA","--card":"#FAFCFF","--card-back":"#DBE7F2","--ink":"#233449","--muted":"#6D8195","--muted-2":"#A0B3C3","--sage":"#3B84C7","--sage-dim":"#BAD5ED","--coral":"#2FA3B8","--line":"#D7E4EF","--hole":"#E8F2FA","--hole-ring":"#C2D7E7"}},
+  {name:"연두",   dot:"#C5E4BB", vars:{"--bg":"#ECF5E7","--card":"#FBFEF9","--card-back":"#DEECD5","--ink":"#2A4125","--muted":"#73926D","--muted-2":"#A5C3A0","--sage":"#57A044","--sage-dim":"#C5E4BB","--coral":"#C08430","--line":"#DBEAD2","--hole":"#ECF5E7","--hole-ring":"#C6DEBA"}},
+  {name:"화이트", dot:"#E4E4E8", vars:{"--bg":"#F4F4F5","--card":"#FFFFFF","--card-back":"#E7E7EA","--ink":"#27272E","--muted":"#6F6F78","--muted-2":"#A5A5AE","--sage":"#4B4B55","--sage-dim":"#D6D6DB","--coral":"#B4685A","--line":"#E4E4E8","--hole":"#F4F4F5","--hole-ring":"#D2D2D8"}}
+];
+function applyTheme(idx){
+  const t = THEMES[idx] || THEMES[0];
+  Object.entries(t.vars).forEach(([k,v])=> document.documentElement.style.setProperty(k, v));
+  localStorage.setItem('culcom-theme', String(idx));
+  document.querySelectorAll('#themeDots .color-dot').forEach((d,i)=> d.classList.toggle('active', i===idx));
+}
+function renderThemeDots(){
+  const box = document.getElementById('themeDots');
+  if(!box) return;
+  box.innerHTML = '';
+  THEMES.forEach((t,i)=>{
+    const dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = t.dot;
+    dot.title = t.name + ' 테마';
+    dot.addEventListener('click', ()=> applyTheme(i));
+    box.appendChild(dot);
+  });
+  applyTheme(parseInt(localStorage.getItem('culcom-theme')||'0', 10));
+}
+renderThemeDots();
+
+// ---- 카드 색상 선택 (localStorage에 저장, 카드별로 기억됨) ----
+const CARD_COLORS = [
+  {name:"기본",   c:""},
+  {name:"크림",   c:"#FFF9E3"},
+  {name:"핑크",   c:"#FFECEE"},
+  {name:"하늘",   c:"#E9F4FB"},
+  {name:"연두",   c:"#EBF6E8"},
+  {name:"라벤더", c:"#F2ECFB"}
+];
+function getCardColors(){
+  try{ return JSON.parse(localStorage.getItem('culcom-card-colors')||'{}'); }catch(e){ return {}; }
+}
+function setCardColor(key, c){
+  const m = getCardColors();
+  if(c) m[key] = c; else delete m[key];
+  localStorage.setItem('culcom-card-colors', JSON.stringify(m));
+}
+function addCardColorPicker(cardEl, key){
+  const saved = getCardColors()[key] || "";
+  if(saved) cardEl.style.background = saved;
+  const row = document.createElement('div');
+  row.className = 'card-colors';
+  CARD_COLORS.forEach(col=>{
+    const dot = document.createElement('div');
+    dot.className = 'color-dot' + (saved === col.c ? ' active' : '');
+    dot.style.background = col.c || 'var(--card)';
+    dot.title = col.name;
+    dot.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      setCardColor(key, col.c);
+      cardEl.style.background = col.c || '';
+      row.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+    row.appendChild(dot);
+  });
+  const top = cardEl.querySelector('.card-top');
+  if(top) top.insertAdjacentElement('afterend', row);
+  else cardEl.prepend(row);
+}
+
 // ---- 공유 카드 컴포넌트 ----
 function buildCard(p){
   const wrap = document.createElement('div');
@@ -1391,6 +1498,7 @@ function buildCard(p){
     renderCompareList(wrap, p.id);
     saveState();
   });
+  addCardColorPicker(wrap, 'p' + p.id);
   return wrap;
 }
 
@@ -1675,6 +1783,7 @@ function renderGiu(){
     <div data-giu-corrlist></div>
   `;
   deck.appendChild(card);
+  addCardColorPicker(card, 'giu-u' + n);
 
   // title
   card.querySelector('[data-giu-title]').textContent = giuTitle(n);
@@ -1839,32 +1948,277 @@ document.getElementById('btnGiuNext').addEventListener('click', ()=>{
 });
 // ===================== END GRAMMAR IN USE =====================
 
+// ===================== DAILY QUESTION =====================
+// 새 Daily Question 추가 방법: 아래 배열에 {id, title, date, items:[...]} 객체를 이어 붙이면 끝!
+// en 안의 **...** 부분이 핵심 청크(주황색 강조)로 표시돼요.
+const DQ_SETS = [
+  {
+    id: 4,
+    title: "4. Let's talk about investment",
+    date: "2026-07-23",
+    items: [
+      { q: "What's one reason you'd like to try investing someday?",
+        answers: [
+          {en:"I'd like to invest someday because I want to **build long-term wealth**.", kr:"언젠가 장기적인 자산을 쌓고 싶어서 투자해 보고 싶습니다."}
+        ]},
+      { q: "What do you think people should know before they start investing?",
+        answers: [
+          {en:"It's important to **set a clear goal** before investing.", kr:"투자를 하기 전에 분명한 목표를 세우는 것이 중요합니다."}
+        ]},
+      { q: "If you could learn just one new skill this year, what would it be and why?",
+        answers: [
+          {en:"I'd like to improve my English because it would **open more opportunities**.", kr:"영어를 더 잘하고 싶습니다. 더 많은 기회를 얻을 수 있기 때문입니다."},
+          {en:"I'd like to learn photography because I enjoy **being creative**.", kr:"창의적인 활동을 좋아해서 사진을 배우고 싶습니다."}
+        ]},
+      { q: "How do you invest in your physical and mental health?",
+        answers: [
+          {en:"I **exercise regularly** because it helps me stay healthy.", kr:"규칙적으로 운동합니다. 건강을 유지하는 데 도움이 되기 때문입니다."}
+        ]},
+      { q: "What's one activity you've spent time on in the last three to five months that was worth it?",
+        answers: [
+          {en:"I've spent more time reading, and I've **learned a lot from it**.", kr:"독서에 시간을 더 투자했고, 많은 것을 배웠습니다."},
+          {en:"I've been working out, so I **have more energy** now.", kr:"운동을 하면서 요즘 더 활력이 생겼습니다."}
+        ]},
+      { q: "Which makes you feel more recharged: spending time alone or with other people? Why?",
+        answers: [
+          {en:"I feel recharged after spending some **quiet time** alone.", kr:"혼자 조용한 시간을 보내면 재충전되는 느낌이 듭니다."}
+        ]},
+      { q: "If you had to own just one stock for the next 10 years, which company's stock would you choose, and why?",
+        answers: [
+          {en:"I'd choose **a company with a strong future** because I think it will keep growing.", kr:"미래가 밝은 회사를 선택하겠습니다. 계속 성장할 것이라고 생각하기 때문입니다."},
+          {en:"I'd choose a company with **loyal customers**.", kr:"충성 고객이 많은 회사를 선택하겠습니다."}
+        ]},
+      { q: "What's the biggest excuse you've made to justify spending money or investing in something?",
+        answers: [
+          {en:"I told myself it would **be worth the money**.", kr:"돈값은 할 거라고 스스로 생각했습니다."}
+        ]},
+      { q: "Which would make you more upset: a stock dropping right after you buy it, or a stock soaring right after you sell it? Why?",
+        answers: [
+          {en:"I'd be more upset if I **missed the chance** to make money.", kr:"돈을 벌 기회를 놓쳤다면 더 속상할 것 같습니다."},
+          {en:"I'd be more upset if my stock **lost value** right away.", kr:"주식이 바로 가치가 떨어지면 더 속상할 것 같습니다."}
+        ]},
+      { q: "Looking back, what's the best investment you've ever made with your time, money, or effort?",
+        answers: [
+          {en:"Learning English has been **one of the best** decisions I've made.", kr:"영어를 배운 것은 제가 내린 최고의 결정 중 하나였습니다."},
+          {en:"Spending time with my family has been the most **valuable investment**.", kr:"가족과 시간을 보낸 것이 가장 가치 있는 투자였습니다."}
+        ]}
+    ]
+  }
+];
+
+let currentDqIndex = 0;
+
+// ---- 커스텀 세트: Supabase attempts 컬럼에 'dq-custom' 키로 저장 (기기 간 동기화 O, 재배포 불필요) ----
+function getCustomDqSets(){
+  const a = state.attempts['dq-custom'];
+  return (a && Array.isArray(a.sets)) ? a.sets : [];
+}
+function saveCustomDqSets(sets){
+  state.attempts['dq-custom'] = { sets };
+  saveState();
+}
+function allDqSets(){ return [...DQ_SETS, ...getCustomDqSets()]; }
+
+const DQ_JSON_GUIDE = `{
+  "id": 5,
+  "title": "5. Let's talk about ...",
+  "date": "YYYY-MM-DD",
+  "items": [
+    { "q": "질문 문장",
+      "answers": [ {"en": "답변 문장 (핵심 청크는 **별표 두 개**로 감싸기)", "kr": "한국어 해석"} ] }
+  ]
+}`;
+
+function renderDqCustomList(){
+  const box = document.getElementById('dqCustomList');
+  const sets = getCustomDqSets();
+  if(sets.length === 0){ box.innerHTML = '<div class="notes-empty">아직 추가한 커스텀 세트가 없어요.</div>'; return; }
+  box.innerHTML = '';
+  sets.forEach((s, i)=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 2px;border-bottom:1px dashed var(--line);font-size:12.5px;';
+    row.innerHTML = `<span>💬 ${s.title} <span class="dq-meta">(${s.date||''} · 질문 ${s.items.length}개)</span></span>
+      <button class="btn-ghost" style="padding:3px 9px;font-size:11px;" data-del="${i}">삭제</button>`;
+    row.querySelector('[data-del]').addEventListener('click', ()=>{
+      if(!confirm(`"${s.title}" 세트를 삭제할까요? (연습 기록은 남아요)`)) return;
+      const next = getCustomDqSets(); next.splice(i,1);
+      saveCustomDqSets(next);
+      if(currentDqIndex >= allDqSets().length) currentDqIndex = 0;
+      renderDqDeck(); renderDqCustomList();
+    });
+    box.appendChild(row);
+  });
+}
+
+function validateDqSet(obj){
+  if(!obj || typeof obj !== 'object') return '객체(JSON) 형식이 아니에요.';
+  if(!obj.title) return 'title이 없어요.';
+  if(!Array.isArray(obj.items) || obj.items.length === 0) return 'items 배열이 비어있어요.';
+  for(const it of obj.items){
+    if(!it.q) return '질문(q)이 빠진 항목이 있어요.';
+    if(!Array.isArray(it.answers) || it.answers.length === 0) return `"${it.q}" 항목에 answers가 없어요.`;
+    for(const a of it.answers){ if(!a.en || !a.kr) return `"${it.q}" 항목의 답변에 en 또는 kr이 빠졌어요.`; }
+  }
+  return null;
+}
+
+function wireDqAddPanel(){
+  document.getElementById('dqAddHead').addEventListener('click', ()=>{
+    document.getElementById('dqAddBody').classList.toggle('open');
+    document.getElementById('dqAddChev').classList.toggle('open');
+  });
+  document.getElementById('dqCopyPrompt').addEventListener('click', ()=>{
+    const msg = `첨부한 컬컴 Daily Question을 내 스터디 앱용 JSON으로 변환해줘!\n\n형식은 아래랑 똑같이, PDF의 빨간 볼드 청크는 **별표 두 개**로 감싸줘:\n\n${DQ_JSON_GUIDE}\n\nid는 기존 세트랑 겹치지 않게 문서에 적힌 번호를 쓰고, 다른 설명 없이 JSON만 코드블록으로 줘!`;
+    navigator.clipboard.writeText(msg).then(()=>{
+      const toast = document.getElementById('dqPromptToast');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }).catch(()=> alert('복사 실패! 직접 복사해주세요:\n\n' + msg));
+  });
+  document.getElementById('dqJsonSave').addEventListener('click', ()=>{
+    const raw = document.getElementById('dqJsonInput').value.trim().replace(/^```(json)?/,'').replace(/```$/,'').trim();
+    if(!raw){ alert('JSON을 먼저 붙여넣어주세요!'); return; }
+    let obj;
+    try{ obj = JSON.parse(raw); }catch(e){ alert('JSON 파싱 실패 😢\n' + e.message + '\n\nClaude가 준 코드블록 안의 내용만 붙여넣었는지 확인해보세요.'); return; }
+    const err = validateDqSet(obj);
+    if(err){ alert('형식 오류: ' + err); return; }
+    const existing = allDqSets();
+    if(!obj.id || existing.some(s=>s.id === obj.id)){
+      obj.id = Math.max(0, ...existing.map(s=>Number(s.id)||0)) + 1;
+    }
+    const next = getCustomDqSets(); next.push(obj);
+    saveCustomDqSets(next);
+    document.getElementById('dqJsonInput').value = '';
+    currentDqIndex = allDqSets().length - 1;
+    renderDqDeck(); renderDqCustomList();
+    alert(`"${obj.title}" 세트가 추가됐어요! 🎉`);
+  });
+  renderDqCustomList();
+}
+wireDqAddPanel();
+
+function dqHighlight(en){ return en.replace(/\*\*(.+?)\*\*/g, '<b class="dq-chunk">$1</b>'); }
+function dqPlain(en){ return en.replace(/\*\*/g, ''); }
+
+function renderDqBar(){
+  const bar = document.getElementById('dqSetBar');
+  bar.innerHTML = '';
+  allDqSets().forEach((s, idx)=>{
+    const chip = document.createElement('div');
+    chip.className = 'unit-chip' + (idx === currentDqIndex ? ' active' : '');
+    chip.textContent = s.title;
+    chip.onclick = ()=>{ currentDqIndex = idx; renderDqDeck(); };
+    bar.appendChild(chip);
+  });
+}
+
+function buildDqCard(set, item, qNum){
+  const key = `dq${set.id}-${qNum}`;
+  const saved = (state.attempts[key] && state.attempts[key].s1) || '';
+  const wrap = document.createElement('div');
+  wrap.className = 'card';
+  wrap.innerHTML = `
+    <div class="card-top">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="card-num mono">Q${qNum}</div>
+      </div>
+      <button class="speak-btn" data-q-speak>🔊 질문 듣기</button>
+    </div>
+    <div class="dq-qtext" data-q-speak2>${item.q}</div>
+    <textarea class="attempt" data-s1 placeholder="모범답안 보기 전에, 먼저 내 답을 소리 내서 말하고 여기 적어보세요!">${saved}</textarea>
+    <div class="btn-row">
+      <button class="btn-ghost" data-act="answers">모범답안 보기 ▼</button>
+      <button class="btn-check" data-act="copy-check">📋 Claude 검수 요청 복사</button>
+    </div>
+    <div class="copy-toast" data-toast>복사됐어요! Claude 앱/채팅에 붙여넣어 보세요 ✅</div>
+    <div class="examples" data-answers>
+      ${item.answers.map((a,i)=>`
+        <div class="ex-item">
+          <div class="ex-en">${dqHighlight(a.en)}</div>
+          <div class="ex-kr">${a.kr}</div>
+          <div class="speak-row" data-speak-row="${i}">
+            <button class="speak-btn" data-speak-btn>🔊 듣고 따라 말하기</button>
+            <span class="repeat-counter" data-repeat-wrap></span>
+            <button class="repeat-btn" data-repeat-btn>말했어요 +1</button>
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+  const speakQ = ()=> speakText(item.q);
+  wrap.querySelector('[data-q-speak]').addEventListener('click', speakQ);
+  wrap.querySelector('[data-q-speak2]').addEventListener('click', speakQ);
+  wrap.querySelector('[data-act="answers"]').addEventListener('click', (e)=>{
+    const isOpen = wrap.querySelector('[data-answers]').classList.toggle('show');
+    e.target.textContent = isOpen ? '모범답안 접기 ▲' : '모범답안 보기 ▼';
+  });
+  wrap.querySelector('[data-s1]').addEventListener('change', ()=>{
+    if(!state.attempts[key]) state.attempts[key] = {};
+    state.attempts[key].s1 = wrap.querySelector('[data-s1]').value;
+    saveState();
+  });
+  wrap.querySelectorAll('[data-speak-row]').forEach(row=>{
+    const i = parseInt(row.getAttribute('data-speak-row'));
+    wireRepeatCounter(row, '[data-speak-btn]', '[data-repeat-wrap]', '[data-repeat-count]', '[data-repeat-btn]', dqPlain(item.answers[i].en));
+  });
+  wrap.querySelector('[data-act="copy-check"]').addEventListener('click', ()=>{
+    const attemptText = wrap.querySelector('[data-s1]').value.trim();
+    let msg = `아래 답변 검수 부탁해! (컬컴 Daily Question)\n\n`;
+    msg += `질문: ${item.q}\n`;
+    msg += `내 답변: ${attemptText || "(아직 안 씀)"}\n`;
+    msg += `\n문법 오류 있으면 짚어주고, IH 레벨로 확장하는 방법(Fact→Why→So What)도 알려줘!`;
+    navigator.clipboard.writeText(msg).then(()=>{
+      const toast = wrap.querySelector('[data-toast]');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }).catch(()=>{
+      alert('복사에 실패했어요. 직접 선택해서 복사해주세요:\n\n' + msg);
+    });
+  });
+  addCardColorPicker(wrap, key);
+  return wrap;
+}
+
+function renderDqDeck(){
+  renderDqBar();
+  const set = allDqSets()[currentDqIndex] || DQ_SETS[0];
+  const deck = document.getElementById('dqDeck');
+  deck.innerHTML = '';
+  set.items.forEach((item, idx)=> deck.appendChild(buildDqCard(set, item, idx+1)));
+}
+// ===================== END DAILY QUESTION =====================
+
 function setMode(newMode){
   mode = newMode;
   document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
   document.getElementById('tabRandom').classList.toggle('active', mode==='random');
   document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
   document.getElementById('tabFreeWriting').classList.toggle('active', mode==='freewriting');
+  document.getElementById('tabDq').classList.toggle('active', mode==='dq');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('randomModeView').classList.toggle('hidden', mode!=='random');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
   document.getElementById('freeWritingModeView').classList.toggle('hidden', mode!=='freewriting');
+  document.getElementById('dqModeView').classList.toggle('hidden', mode!=='dq');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
     : mode==='random'
     ? "무작위 패턴 뽑기 · IH 확장까지 한 번에"
     : mode==='giu'
     ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
+    : mode==='dq'
+    ? "컬컴 Daily Question · 질문 듣기 → 내 답 먼저 → 모범답안 비교"
     : "한국말 → 영작 → 발음 따라하기 · 실시간 영작 일지";
   if(mode==='unit') renderUnitDeck();
   else if(mode==='random') renderRandomDeck();
   else if(mode==='giu') renderGiu();
   else if(mode==='freewriting') renderFreeWriting();
+  else if(mode==='dq') renderDqDeck();
 }
 document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
 document.getElementById('tabRandom').addEventListener('click', ()=>setMode('random'));
 document.getElementById('tabFreeWriting').addEventListener('click', ()=>setMode('freewriting'));
+document.getElementById('tabDq').addEventListener('click', ()=>setMode('dq'));
 
 // ---- STATS & GRID (공통) ----
 function renderStats(){
@@ -1899,6 +2253,20 @@ function renderGrid(){
     grid.appendChild(tile);
   });
 }
+
+// ---- 확장 체크포인트 (배열에 항목 추가하면 노트 패널에 자동 반영) ----
+const CP_ITEMS = [
+  {t:"should have + p.p.", d:"have 뒤엔 반드시 과거분사(원형 X). would have는 if절 필수, should have는 단독 후회."},
+  {t:"동명사구 주어 vs While + 동명사", d:"동명사가 주어면 While 없이 단독으로."},
+  {t:"목적의 to부정사", d:"\"~하기 위해서\"는 to + 동사원형만. at/when/while로 대체 불가."},
+  {t:"feel + 형용사", d:"feel 뒤엔 항상 형용사 (동사원형/명사 X)."},
+  {t:"감정 단어 + 이유", d:"curious, excited, worried 등은 about/because로 대상·이유를 붙여야 자연스러움."}
+];
+function renderCheckpoints(){
+  const body = document.getElementById('cpBody');
+  if(body) body.innerHTML = CP_ITEMS.map(i=>`<div class="cp-item"><b>${i.t}</b> — ${i.d}</div>`).join('');
+}
+renderCheckpoints();
 
 document.getElementById('cpHead').addEventListener('click', ()=>{
   document.getElementById('cpBody').classList.toggle('open');
@@ -2251,6 +2619,7 @@ window.addEventListener('resize', buildSpiral);
   renderStats();
   renderGrid();
   renderNotes();
+  renderDqCustomList();
   setMode('unit');
 })();
 </script>
