@@ -488,6 +488,9 @@ button:active{opacity:.75;}
       <div class="card-head" style="margin-top:14px;">✏️ 영작</div>
       <textarea id="fwEnglish" placeholder="영어로 옮겨서 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
 
+      <div class="card-head" style="margin-top:14px;">📝 교정된 문장</div>
+      <textarea id="fwCorrected" placeholder="교정된 문장을 여기에 입력해주세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+
       <div style="display:flex; gap:8px; margin-top:12px;">
         <button class="btn-ghost" id="fwSave">💾 저장</button>
         <button class="btn-ghost" id="fwReset">🔄 초기화</button>
@@ -2115,6 +2118,7 @@ function renderDqBar(){
 function buildDqCard(set, item, qNum){
   const key = `dq${set.id}-${qNum}`;
   const saved = (state.attempts[key] && state.attempts[key].s1) || '';
+  const corrected = (state.attempts[key] && state.attempts[key].s2) || '';
   const wrap = document.createElement('div');
   wrap.className = 'card';
   wrap.innerHTML = `
@@ -2126,6 +2130,10 @@ function buildDqCard(set, item, qNum){
     </div>
     <div class="dq-qtext" data-q-speak2>${item.q}</div>
     <textarea class="attempt" data-s1 placeholder="모범답안 보기 전에, 먼저 내 답을 소리 내서 말하고 여기 적어보세요!">${saved}</textarea>
+    
+    <div style="font-size:12px; font-weight:600; color:var(--muted); margin-top:12px; margin-bottom:6px;">📝 교정된 문장</div>
+    <textarea class="attempt" data-s2 placeholder="교정된 내용을 여기에 입력하거나 Claude 검수 후 붙여넣어 주세요.">${corrected}</textarea>
+    
     <div class="btn-row">
       <button class="btn-ghost" data-act="answers">모범답안 보기 ▼</button>
       <button class="btn-check" data-act="copy-check">📋 Claude 검수 요청 복사</button>
@@ -2154,6 +2162,11 @@ function buildDqCard(set, item, qNum){
   wrap.querySelector('[data-s1]').addEventListener('change', ()=>{
     if(!state.attempts[key]) state.attempts[key] = {};
     state.attempts[key].s1 = wrap.querySelector('[data-s1]').value;
+    saveState();
+  });
+  wrap.querySelector('[data-s2]').addEventListener('change', ()=>{
+    if(!state.attempts[key]) state.attempts[key] = {};
+    state.attempts[key].s2 = wrap.querySelector('[data-s2]').value;
     saveState();
   });
   wrap.querySelectorAll('[data-speak-row]').forEach(row=>{
@@ -2510,12 +2523,14 @@ function buildSpiral(){
 function renderFreeWriting(){
   const korInput = document.getElementById('fwKorean');
   const engInput = document.getElementById('fwEnglish');
+  const corrInput = document.getElementById('fwCorrected');
   const listDiv = document.getElementById('fwList');
 
   // 버튼 이벤트
   document.getElementById('fwSave').onclick = ()=>{
     const korean = korInput.value.trim();
     const english = engInput.value.trim();
+    const corrected = corrInput.value.trim() || english; // 교정 입력이 없으면 영작 그대로
     if(!korean || !english){
       alert('한국말과 영작을 모두 입력해주세요.');
       return;
@@ -2523,7 +2538,7 @@ function renderFreeWriting(){
     const item = {
       korean,
       english,
-      corrected: english, // 처음엔 영작 그대로
+      corrected: corrected,
       date: new Date().toLocaleString('ko-KR'),
       playCount: 0
     };
@@ -2531,6 +2546,7 @@ function renderFreeWriting(){
     saveState();
     korInput.value = '';
     engInput.value = '';
+    corrInput.value = '';
     renderFreeWritingList();
   };
 
@@ -2538,6 +2554,7 @@ function renderFreeWriting(){
     if(confirm('정말 초기화하시겠어요?')){
       korInput.value = '';
       engInput.value = '';
+      corrInput.value = '';
     }
   };
 
