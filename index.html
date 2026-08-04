@@ -165,15 +165,6 @@ textarea.attempt{
 }
 textarea.attempt::placeholder{color:var(--muted-2);}
 
-/* 저장된 문장: 경계 없는 텍스트 뷰 (더블클릭으로 수정) */
-.saved-text{
-  margin-top:10px; padding:2px 1px;
-  font-family:'Pretendard Variable',sans-serif;
-  font-size:13.5px; line-height:1.55; color:var(--ink);
-  white-space:pre-wrap; word-break:break-word; cursor:text;
-}
-.saved-text:active{opacity:.7;}
-
 .examples{
   margin-top:14px; display:none; border-top:1px dashed var(--line); padding-top:14px;
 }
@@ -490,6 +481,23 @@ button:active{opacity:.75;}
 
   <!-- ===== FREE WRITING MODE ===== -->
   <div id="freeWritingModeView" class="hidden">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="checkpoint-head" id="fwBulkHead" style="padding:0;">
+        <div class="checkpoint-title">📥 한번에 붙여넣기 (다른 채팅에서 모은 문장·청크 일괄 추가)</div>
+        <div class="chev" id="fwBulkChev">▶</div>
+      </div>
+      <div class="checkpoint-body" id="fwBulkBody" style="padding:10px 0 0;">
+        <div class="ih-hint">① 청크가 있는 Claude 채팅에서 아래 버튼으로 복사한 요청을 붙여넣기 → ② Claude가 준 JSON을 아래 칸에 붙여넣고 저장 → 여러 문장이 한 번에 들어가요!<br>💡 JSON 말고 그냥 <b>"한국어 | 영어"</b> 형식으로 한 줄에 하나씩 써서 붙여넣어도 돼요. (탭 구분도 OK, 순서 바뀌어도 자동 인식)</div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn-check" id="fwBulkCopyPrompt">📋 Claude 변환 요청 복사</button>
+        </div>
+        <div class="copy-toast" id="fwBulkToast">복사됐어요! 청크가 있는 채팅에 붙여넣어 보세요 ✅</div>
+        <textarea class="attempt" id="fwBulkInput" placeholder='예시 1 (JSON): [{"korean":"~하기로 되어 있었다","english":"I was supposed to ~"}]&#10;예시 2 (줄 형식):&#10;나 오늘 야근할 뻔했어 | I almost had to work overtime today&#10;그럴 만하다 | It makes sense' style="min-height:120px; font-family:'IBM Plex Mono',monospace; font-size:11.5px;"></textarea>
+        <div class="btn-row">
+          <button class="btn-primary" id="fwBulkSave">일괄 저장</button>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <div class="card-head">🗣️ 한국말</div>
       <textarea id="fwKorean" placeholder="한국말로 자유롭게 쓰세요..." style="width:100%; min-height:80px; padding:12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
@@ -570,26 +578,6 @@ button:active{opacity:.75;}
       </div>
       <div id="chunksView" class="hidden">
         <select class="unit-filter" id="chunkUnitFilter"></select>
-        <div class="btn-row" style="margin:0 0 8px;">
-          <button class="btn-ghost" id="btnBulkChunk">📥 한번에 붙여넣기</button>
-          <button class="btn-check" id="btnChunkDrill">⚡ 반사 드릴</button>
-        </div>
-        <div id="bulkChunkForm" class="add-note-form hidden" style="padding-top:0;">
-          <textarea id="bulkChunkText" placeholder="한 줄에 하나씩 붙여넣기:&#10;영어 표현 — 뜻/트리거&#10;(구분자는 — | 탭 전부 OK, 뜻 없이 표현만도 OK)" style="min-height:90px;"></textarea>
-          <div class="btn-row">
-            <button class="btn-primary" id="btnBulkSave">일괄 저장</button>
-          </div>
-        </div>
-        <div id="chunkDrillBox" class="hidden" style="border:1.5px solid var(--coral);border-radius:8px;padding:14px;margin-bottom:10px;background:#fff;">
-          <div id="drillProg" style="font-size:11px;color:var(--muted-2);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;"></div>
-          <div id="drillKr" style="font-size:15px;font-weight:700;line-height:1.5;color:var(--ink);"></div>
-          <div id="drillEn" class="hidden" style="font-size:14.5px;color:var(--coral);font-weight:700;margin-top:8px;line-height:1.5;"></div>
-          <div class="btn-row">
-            <button class="btn-primary" id="drillReveal">정답 확인 🔊</button>
-            <button class="btn-ghost" id="drillNext">다음 →</button>
-            <button class="btn-ghost" id="drillStop">종료</button>
-          </div>
-        </div>
         <div class="add-note-form">
           <input type="text" id="chunkText" placeholder="청크 (예: I was supposed to ~)">
           <input type="text" id="chunkMeaning" placeholder="뜻 (예: ~하기로 되어 있었다)" style="margin-top:6px;">
@@ -1491,8 +1479,6 @@ function buildCard(p){
   }
   wrap.querySelector('[data-s1]').addEventListener('change', persistAttempt);
   wrap.querySelector('[data-s2]').addEventListener('change', persistAttempt);
-  makeDblclickEditable(wrap.querySelector('[data-s1]'));
-  makeDblclickEditable(wrap.querySelector('[data-s2]'));
   wrap.querySelectorAll('[data-speak-row]').forEach(row=>{
     const i = parseInt(row.getAttribute('data-speak-row'));
     wireRepeatCounter(row, '[data-speak-btn]', '[data-repeat-wrap]', '[data-repeat-count]', '[data-repeat-btn]', p.ex[i].en);
@@ -2146,39 +2132,6 @@ function renderDqBar(){
   });
 }
 
-// 텍스트칸 → 저장 후 경계 없는 텍스트로 표시, 더블클릭 시 다시 편집, 입력 중 자동저장
-function makeDblclickEditable(ta){
-  const view = document.createElement('div');
-  view.className = 'saved-text';
-  view.title = '더블클릭하면 수정할 수 있어요';
-  ta.parentNode.insertBefore(view, ta.nextSibling);
-  let timer = null;
-  const toView = ()=>{
-    if(ta.value.trim()){
-      view.textContent = ta.value;
-      view.style.display = 'block';
-      ta.style.display = 'none';
-    } else {
-      view.style.display = 'none';
-      ta.style.display = 'block';
-    }
-  };
-  const toEdit = ()=>{
-    view.style.display = 'none';
-    ta.style.display = 'block';
-    ta.focus();
-    const len = ta.value.length;
-    try{ ta.setSelectionRange(len, len); }catch(e){}
-  };
-  view.addEventListener('dblclick', toEdit);
-  ta.addEventListener('input', ()=>{
-    clearTimeout(timer);
-    timer = setTimeout(()=> ta.dispatchEvent(new Event('change')), 800); // 기존 저장 로직 재사용
-  });
-  ta.addEventListener('blur', ()=>{ clearTimeout(timer); ta.dispatchEvent(new Event('change')); toView(); });
-  toView();
-}
-
 function buildDqCard(set, item, qNum){
   const key = `dq${set.id}-${qNum}`;
   const saved = (state.attempts[key] && state.attempts[key].s1) || '';
@@ -2197,11 +2150,6 @@ function buildDqCard(set, item, qNum){
     
     <div style="font-size:12px; font-weight:600; color:var(--muted); margin-top:12px; margin-bottom:6px;">📝 교정된 문장</div>
     <textarea class="attempt" data-s2 placeholder="교정된 내용을 여기에 입력하거나 Claude 검수 후 붙여넣어 주세요.">${corrected}</textarea>
-    <div class="speak-row" style="margin-top:8px;">
-      <button class="speak-btn" data-s2-speak>🔊 듣고 따라 말하기</button>
-      <span class="repeat-counter" data-s2-wrap></span>
-      <button class="repeat-btn" data-s2-repeat>말했어요 +1</button>
-    </div>
     
     <div class="btn-row">
       <button class="btn-ghost" data-act="answers">모범답안 보기 ▼</button>
@@ -2238,18 +2186,6 @@ function buildDqCard(set, item, qNum){
     state.attempts[key].s2 = wrap.querySelector('[data-s2]').value;
     saveState();
   });
-  makeDblclickEditable(wrap.querySelector('[data-s1]'));
-  makeDblclickEditable(wrap.querySelector('[data-s2]'));
-  // 교정된 문장: 현재 입력된 텍스트를 실시간으로 읽어줌 (수정해도 최신 문장 재생)
-  const s2El = wrap.querySelector('[data-s2]');
-  wrap.querySelector('[data-s2-speak]').addEventListener('click', ()=>{
-    const t = s2El.value.trim();
-    if(!t){ alert('교정된 문장을 먼저 입력해주세요!'); return; }
-    speakText(t);
-  });
-  const s2Wrap = wrap.querySelector('[data-s2-wrap]');
-  initRepeat(s2Wrap);
-  wrap.querySelector('[data-s2-repeat]').addEventListener('click', ()=> bumpRepeat(s2Wrap));
   wrap.querySelectorAll('[data-speak-row]').forEach(row=>{
     const i = parseInt(row.getAttribute('data-speak-row'));
     wireRepeatCounter(row, '[data-speak-btn]', '[data-repeat-wrap]', '[data-repeat-count]', '[data-repeat-btn]', dqPlain(item.answers[i].en));
@@ -2378,10 +2314,7 @@ const UNIT_TAG_OPTIONS = [
   {v:'all', label:'전체 보기'},
   {v:'common', label:'공통'},
   ...UNITS.map(u => ({v:u.id, label:u.label})),
-  {v:'giu', label:'Grammar in Use'},
-  {v:'dq', label:'Daily Question'},
-  {v:'fw', label:'영작 연습'},
-  {v:'talk', label:'🗣 회화 반사 표현'}
+  {v:'giu', label:'Grammar in Use'}
 ];
 function populateUnitFilters(){
   ['noteUnitFilter','chunkUnitFilter'].forEach(id=>{
@@ -2499,74 +2432,6 @@ document.getElementById('btnSaveChunk').addEventListener('click', ()=>{
   meaningEl.value = '';
   saveState();
   renderNotes();
-});
-
-// 청크 일괄 붙여넣기: "영어 — 뜻" / "영어 | 뜻" / 탭 구분, 한 줄에 하나
-document.getElementById('btnBulkChunk').addEventListener('click', ()=>{
-  document.getElementById('bulkChunkForm').classList.toggle('hidden');
-});
-document.getElementById('btnBulkSave').addEventListener('click', ()=>{
-  const raw = document.getElementById('bulkChunkText').value;
-  const lines = raw.split('\n').map(l=>l.replace(/^[-•*⭐▪︎·]+\s*/,'').trim()).filter(Boolean);
-  if(!lines.length){ alert('붙여넣은 내용이 없어요!'); return; }
-  const filterVal = document.getElementById('chunkUnitFilter').value;
-  const unit = filterVal === 'all' ? 'common' : filterVal;
-  const seps = [' — ', '—', ' | ', '|', '\t', ' - '];
-  let added = 0;
-  lines.forEach((line, i)=>{
-    let en = line, kr = '';
-    for(const s of seps){
-      const idx = line.indexOf(s);
-      if(idx > 0){ en = line.slice(0, idx).trim(); kr = line.slice(idx + s.length).trim(); break; }
-    }
-    if(!en) return;
-    state.notes.push({
-      id: Date.now() + i,
-      type: 'chunk',
-      unit,
-      title: en,
-      body: kr,
-      createdAt: new Date().toISOString()
-    });
-    added++;
-  });
-  document.getElementById('bulkChunkText').value = '';
-  document.getElementById('bulkChunkForm').classList.add('hidden');
-  saveState();
-  renderNotes();
-  alert(`${added}개 청크 저장 완료! (카테고리: ${unitTagLabel(unit)})`);
-});
-
-// ⚡ 반사 드릴: 뜻(한국어) 보고 → 소리 내서 뱉기 → 정답 확인
-let drillPool = [], drillIdx = 0;
-function showDrillCard(){
-  const c = drillPool[drillIdx];
-  document.getElementById('drillProg').textContent = `${drillIdx+1} / ${drillPool.length}`;
-  document.getElementById('drillKr').textContent = c.body || c.title;
-  const en = document.getElementById('drillEn');
-  en.textContent = c.title;
-  en.classList.add('hidden');
-}
-document.getElementById('btnChunkDrill').addEventListener('click', ()=>{
-  const chunkFilter = document.getElementById('chunkUnitFilter').value || 'all';
-  const chunks = state.notes.filter(n => n.type === 'chunk').filter(c => matchesFilter(c, chunkFilter));
-  if(!chunks.length){ alert('이 카테고리에 저장된 청크가 없어요!\n먼저 청크를 추가해주세요.'); return; }
-  drillPool = [...chunks].sort(()=>Math.random()-0.5);
-  drillIdx = 0;
-  document.getElementById('chunkDrillBox').classList.remove('hidden');
-  showDrillCard();
-});
-document.getElementById('drillReveal').addEventListener('click', ()=>{
-  const c = drillPool[drillIdx];
-  document.getElementById('drillEn').classList.remove('hidden');
-  speakText(c.title.replace(/~/g, '').trim());
-});
-document.getElementById('drillNext').addEventListener('click', ()=>{
-  drillIdx = (drillIdx + 1) % drillPool.length;
-  showDrillCard();
-});
-document.getElementById('drillStop').addEventListener('click', ()=>{
-  document.getElementById('chunkDrillBox').classList.add('hidden');
 });
 
 // 플로팅 패널 탭 전환 (노트/청크/오늘)
@@ -2773,6 +2638,78 @@ function deleteFwItem(idx){
     renderFreeWritingList();
   }
 }
+
+// ---- 일괄 붙여넣기 (bulk import) ----
+function parseFwBulk(raw){
+  raw = raw.trim().replace(/^```(json)?/,'').replace(/```$/,'').trim();
+  if(!raw) return {error:'내용을 먼저 붙여넣어주세요!'};
+  const hasKo = s => /[가-힣]/.test(s);
+
+  // 1) JSON 배열 시도
+  if(raw.startsWith('[') || raw.startsWith('{')){
+    try{
+      let arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) arr = [arr];
+      const items = [];
+      for(const it of arr){
+        const korean = (it.korean || it.kr || it.ko || '').trim();
+        const english = (it.english || it.en || '').trim();
+        if(!korean || !english) return {error:'korean/english가 빠진 항목이 있어요. Claude가 준 JSON 전체를 붙여넣었는지 확인해주세요.'};
+        items.push({korean, english, corrected:(it.corrected||english).trim()});
+      }
+      if(items.length === 0) return {error:'항목이 비어있어요.'};
+      return {items};
+    }catch(e){
+      return {error:'JSON 파싱 실패 😢\n' + e.message + '\n\n코드블록 안의 내용만 붙여넣었는지 확인해보세요.'};
+    }
+  }
+
+  // 2) 줄 형식: "한국어 | 영어" (탭 구분 OK, 순서 자동 인식)
+  const items = [];
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  for(const line of lines){
+    const parts = line.split(/\s*\|\s*|\t+/).map(p=>p.trim()).filter(Boolean);
+    if(parts.length < 2) return {error:`구분자를 찾을 수 없는 줄이 있어요:\n"${line}"\n\n"한국어 | 영어" 형식으로 | 나 탭으로 구분해주세요.`};
+    let [a, b] = parts;
+    let korean, english;
+    if(hasKo(a) && !hasKo(b)){ korean = a; english = b; }
+    else if(hasKo(b) && !hasKo(a)){ korean = b; english = a; }
+    else { korean = a; english = b; } // 애매하면 앞=한국어로 간주
+    items.push({korean, english, corrected: english});
+  }
+  if(items.length === 0) return {error:'저장할 줄이 없어요.'};
+  return {items};
+}
+
+function wireFwBulkPanel(){
+  document.getElementById('fwBulkHead').addEventListener('click', ()=>{
+    document.getElementById('fwBulkBody').classList.toggle('open');
+    document.getElementById('fwBulkChev').classList.toggle('open');
+  });
+  document.getElementById('fwBulkCopyPrompt').addEventListener('click', ()=>{
+    const msg = `이 채팅에서 너가 알려주거나 고쳐준 영어 표현·청크·문장들을 전부 모아서 내 스터디 앱용 JSON으로 변환해줘!\n\n형식 (다른 설명 없이 JSON 배열만 코드블록으로):\n[\n  {"korean":"한국어 뜻/원문","english":"자연스러운 영어 최종본"},\n  ...\n]\n\n규칙:\n- english에는 교정된 최종 버전만 (내가 틀리게 쓴 버전 말고)\n- 청크는 "I was supposed to ~"처럼 ~ 표시 사용 가능\n- 중복은 하나로 합쳐줘`;
+    navigator.clipboard.writeText(msg).then(()=>{
+      const toast = document.getElementById('fwBulkToast');
+      toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'), 2200);
+    }).catch(()=> alert('복사 실패! 직접 복사해주세요:\n\n' + msg));
+  });
+  document.getElementById('fwBulkSave').addEventListener('click', ()=>{
+    const inputEl = document.getElementById('fwBulkInput');
+    const result = parseFwBulk(inputEl.value);
+    if(result.error){ alert(result.error); return; }
+    const now = new Date().toLocaleString('ko-KR');
+    // 붙여넣은 순서 그대로 목록 맨 위에 오도록 역순 unshift
+    for(let i = result.items.length - 1; i >= 0; i--){
+      state.freeWritings.unshift({ ...result.items[i], date: now, playCount: 0 });
+    }
+    saveState();
+    inputEl.value = '';
+    renderFreeWritingList();
+    alert(`${result.items.length}개 문장이 한 번에 추가됐어요! 🎉`);
+  });
+}
+wireFwBulkPanel();
 
 function escapeHtml(text){
   const map = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":"&#039;"};
