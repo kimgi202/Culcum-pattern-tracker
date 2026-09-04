@@ -590,14 +590,15 @@ button:active{opacity:.75;}
           </div>
           <div id="rpHeard" style="min-height:36px; font-size:13px; line-height:1.6; padding:6px 8px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin-top:8px;">🎤 눌러서 대답하세요</div>
           <div class="btn-row" style="margin-top:8px;">
-            <button class="btn-ghost" id="rpListen" style="flex:1;">🔊 내 대사 듣기</button>
+            <button class="btn-ghost" id="rpListen" style="flex:1;">🔊 듣기</button>
             <button class="btn-primary" id="rpSpeak" style="flex:2; font-size:15px;">🎤 말하기</button>
-            <button class="btn-ghost" id="rpSkip" style="flex:1;">⏭ 넘기기</button>
           </div>
           <div class="btn-row" style="margin-top:6px;">
-            <button class="btn-ghost" id="rpBack" style="flex:1; font-size:12px;">↩ 이전 내 대사 다시</button>
-            <button class="btn-ghost" id="rpRetry" style="flex:1; font-size:12px;">🔁 이 대사 다시 말하기</button>
+            <button class="btn-ghost" id="rpBack" style="flex:1; font-size:12px;">◀ 이전</button>
+            <button class="btn-ghost" id="rpRetry" style="flex:1; font-size:12px;">🔁 다시</button>
+            <button class="btn-ghost" id="rpSkip" style="flex:1; font-size:12px;">다음 ▶</button>
           </div>
+          <div class="ih-hint">위 말풍선의 🔊 = 그 문장 다시 듣기 · 🎤 = 그 대사로 돌아가서 다시 말하기</div>
         </div>
 
         <div id="rpDone" class="hidden" style="margin-top:10px; text-align:center; padding:14px; border:1px dashed var(--line); border-radius:8px;">
@@ -3067,7 +3068,7 @@ function rpAdvance(){
   const hist = document.getElementById('rpHistory');
   while(rp.turn < sc.turns.length && sc.turns[rp.turn].who === 'S'){
     const t = sc.turns[rp.turn];
-    hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-start; max-width:88%; padding:8px 11px; border-radius:12px 12px 12px 3px; background:var(--card-back); font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)}</div>`);
+    hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-start; max-width:92%; padding:8px 11px; border-radius:12px 12px 12px 3px; background:var(--card-back); font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button></div>`);
     if(document.getElementById('rpAutoTts').checked){
       // 마지막 상대 대사만 재생 (연속이면 순서대로 큐잉됨)
       const u = new SpeechSynthesisUtterance(t.en); u.lang='en-US';
@@ -3094,9 +3095,16 @@ function rpAdvance(){
   document.getElementById('rpMyTurn').classList.remove('hidden');
 }
 
+function rpSayLine(k){ const t = rp.scene && rp.scene.turns[k]; if(t) speakText(t.en); }
+function rpJumpTo(k){
+  if(rp.listening){ try{ rp.rec.stop(); }catch(e){} }
+  document.querySelectorAll('#rpHistory [data-turn]').forEach(el=>{ if(parseInt(el.dataset.turn,10) >= k) el.remove(); });
+  document.getElementById('rpDone').classList.add('hidden');
+  rp.passedCurrent = false; rp.turn = k - 1; rpAdvance();
+}
 function rpCommitMine(t, passed, heardHtml){
   const hist = document.getElementById('rpHistory');
-  hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-end; max-width:88%; padding:8px 11px; border-radius:12px 12px 3px 12px; background:${passed?'var(--sage)':'#d33'}; color:#fff; font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)} ${passed?'🔔':'❌'}</div>`);
+  hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-end; max-width:92%; padding:8px 11px; border-radius:12px 12px 3px 12px; background:${passed?'var(--sage)':'#d33'}; color:#fff; font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)} ${passed?'🔔':'❌'} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button><button onclick="rpJumpTo(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🎤</button></div>`);
   hist.scrollTop = hist.scrollHeight;
 }
 
@@ -3182,10 +3190,7 @@ function wireRoleplay(){
     let k = rp.turn - 1;
     while(k >= 0 && sc.turns[k].who !== 'M') k--;
     if(k < 0){ alert('이전 내 대사가 없어요.'); return; }
-    // 그 턴 이후의 말풍선 제거
-    document.querySelectorAll('#rpHistory [data-turn]').forEach(el=>{ if(parseInt(el.dataset.turn,10) >= k) el.remove(); });
-    document.getElementById('rpDone').classList.add('hidden');
-    rp.passedCurrent=false; rp.turn = k - 1; rpAdvance();
+    rpJumpTo(k);
   });
   document.getElementById('rpKoToggle').addEventListener('click', ()=>{
     const ko=document.getElementById('rpKo'); ko.classList.toggle('hidden');
