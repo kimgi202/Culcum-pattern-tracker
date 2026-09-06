@@ -195,6 +195,13 @@ textarea.attempt::placeholder{color:var(--muted-2);}
   font-size:11px; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:600;
 }
 .repeat-btn:active{opacity:.75;}
+.mic-btn{
+  background:#fff; color:var(--sage); border:1.5px solid var(--sage);
+  font-size:12px; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:700;
+}
+.mic-btn:active{opacity:.75;}
+.mic-btn.on{background:var(--sage); color:#fff;}
+.mic-result{flex-basis:100%; font-size:13px; line-height:1.55; color:var(--muted); min-height:0;}
 .ex-en{font-size:13px; font-weight:600;}
 .ex-kr{font-size:12px; color:var(--muted); margin-top:2px;}
 
@@ -519,21 +526,24 @@ button:active{opacity:.75;}
       </div>
 
       <div id="sdStage" class="hidden">
-        <div id="sdSentence" style="font-size:19px; line-height:1.5; font-weight:600; margin:10px 0 6px; word-break:keep-all;"></div>
+        <div id="sdSentence" style="font-size:24px; line-height:1.45; font-weight:700; margin:12px 0 8px; word-break:keep-all;"></div>
 
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-          <button class="btn-ghost" id="sdKoToggle" style="padding:4px 10px; font-size:11.5px;">👁 뜻 보기</button>
-          <span id="sdKo" class="hidden" style="font-size:13px; color:var(--muted);"></span>
+          <button class="btn-ghost" id="sdKoToggle" style="padding:6px 12px; font-size:13px;">👁 뜻 보기</button>
+          <span id="sdKo" class="hidden" style="font-size:15px; color:var(--muted);"></span>
         </div>
 
-        <div id="sdHeard" style="min-height:44px; font-size:13.5px; line-height:1.6; padding:8px 10px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin:10px 0;">
+        <div id="sdHeard" style="min-height:52px; font-size:16px; line-height:1.6; padding:8px 10px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin:10px 0;">
           🎤 버튼을 누르고 문장을 읽어보세요
         </div>
 
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn-ghost" id="sdListen" style="flex:1; font-size:15px; padding:14px 8px;">🔊 듣기</button>
+          <button class="btn-primary" id="sdSpeak" style="flex:2; font-size:18px; padding:14px 8px;">🎤 말하기</button>
+        </div>
         <div class="btn-row" style="margin-top:8px;">
-          <button class="btn-ghost" id="sdListen" style="flex:1;">🔊 듣기</button>
-          <button class="btn-primary" id="sdSpeak" style="flex:2; font-size:15px;">🎤 말하기</button>
-          <button class="btn-ghost" id="sdNext" style="flex:1;">⏭ 다음</button>
+          <button class="btn-ghost" id="sdPrev" style="flex:1; font-size:15px; padding:12px 8px;">◀ 이전</button>
+          <button class="btn-ghost" id="sdNext" style="flex:1; font-size:15px; padding:12px 8px;">다음 ▶</button>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:var(--muted); flex-wrap:wrap; gap:8px;">
@@ -579,24 +589,24 @@ button:active{opacity:.75;}
       </div>
 
       <div id="rpStage" class="hidden" style="margin-top:12px;">
-        <div id="rpHistory" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; padding:4px 0;"></div>
+        <div id="rpHistory" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; padding:4px 0;"></div>
 
         <div id="rpMyTurn" style="margin-top:10px; padding:10px 12px; border:1px solid var(--sage-dim); border-radius:8px; background:rgba(91,91,214,0.05);">
           <div style="font-size:11px; color:var(--sage); font-weight:600; margin-bottom:4px;">내 차례</div>
-          <div id="rpSentence" style="font-size:17px; line-height:1.5; font-weight:600; word-break:keep-all;"></div>
+          <div id="rpSentence" style="font-size:22px; line-height:1.45; font-weight:700; word-break:keep-all;"></div>
           <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
-            <button class="btn-ghost" id="rpKoToggle" style="padding:3px 10px; font-size:11px;">👁 뜻 보기</button>
-            <span id="rpKo" class="hidden" style="font-size:12.5px; color:var(--muted);"></span>
+            <button class="btn-ghost" id="rpKoToggle" style="padding:6px 12px; font-size:13px;">👁 뜻 보기</button>
+            <span id="rpKo" class="hidden" style="font-size:15px; color:var(--muted);"></span>
           </div>
-          <div id="rpHeard" style="min-height:36px; font-size:13px; line-height:1.6; padding:6px 8px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin-top:8px;">🎤 눌러서 대답하세요</div>
+          <div id="rpHeard" style="min-height:48px; font-size:15.5px; line-height:1.6; padding:6px 8px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin-top:8px;">🎤 눌러서 대답하세요</div>
           <div class="btn-row" style="margin-top:8px;">
-            <button class="btn-ghost" id="rpListen" style="flex:1;">🔊 듣기</button>
-            <button class="btn-primary" id="rpSpeak" style="flex:2; font-size:15px;">🎤 말하기</button>
+            <button class="btn-ghost" id="rpListen" style="flex:1; font-size:15px; padding:14px 8px;">🔊 듣기</button>
+            <button class="btn-primary" id="rpSpeak" style="flex:2; font-size:18px; padding:14px 8px;">🎤 말하기</button>
           </div>
           <div class="btn-row" style="margin-top:6px;">
-            <button class="btn-ghost" id="rpBack" style="flex:1; font-size:12px;">◀ 이전</button>
-            <button class="btn-ghost" id="rpRetry" style="flex:1; font-size:12px;">🔁 다시</button>
-            <button class="btn-ghost" id="rpSkip" style="flex:1; font-size:12px;">다음 ▶</button>
+            <button class="btn-ghost" id="rpBack" style="flex:1; font-size:15px; padding:12px 8px;">◀ 이전</button>
+            <button class="btn-ghost" id="rpRetry" style="flex:1; font-size:15px; padding:12px 8px;">🔁 다시</button>
+            <button class="btn-ghost" id="rpSkip" style="flex:1; font-size:15px; padding:12px 8px;">다음 ▶</button>
           </div>
           <div class="ih-hint">위 말풍선의 🔊 = 그 문장 다시 듣기 · 🎤 = 그 대사로 돌아가서 다시 말하기</div>
         </div>
@@ -692,6 +702,7 @@ button:active{opacity:.75;}
           <div id="drillProg" style="font-size:11px;color:var(--muted-2);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;"></div>
           <div id="drillKr" style="font-size:15px;font-weight:700;line-height:1.5;color:var(--ink);"></div>
           <div id="drillEn" class="hidden" style="font-size:14.5px;color:var(--coral);font-weight:700;margin-top:8px;line-height:1.5;"></div>
+          <div class="speak-row" id="drillMicRow" style="margin-top:6px;"></div>
           <div class="btn-row">
             <button class="btn-primary" id="drillReveal">정답 확인 🔊</button>
             <button class="btn-ghost" id="drillNext">다음 →</button>
@@ -1418,6 +1429,7 @@ document.getElementById('voiceSelect').addEventListener('change', (e)=>{
 document.getElementById('voiceTest').addEventListener('click', ()=>{
   speakText("Hi, this is how I sound. I hope this helps with your speaking practice!");
 });
+attachMic(document.getElementById('quickSpeakBtn').closest('.speak-row'), ()=>document.getElementById('quickListenBox').value.trim(), document.getElementById('quickRepeatWrap'));
 document.getElementById('quickSpeakBtn').addEventListener('click', ()=>{
   const text = document.getElementById('quickListenBox').value.trim();
   if(text) speakText(text);
@@ -1450,6 +1462,46 @@ function wireRepeatCounter(scopeEl, speakBtnSel, wrapSel, countSel, repeatBtnSel
   const wrapEl = scopeEl.querySelector(wrapSel);
   initRepeat(wrapEl);
   scopeEl.querySelector(repeatBtnSel).addEventListener('click', ()=> bumpRepeat(wrapEl));
+  attachMic(scopeEl, ()=>text, wrapEl);
+}
+
+// ---- 공용 🎤 말하기 위젯: 어느 speak-row에나 붙임. 성공하면 딩동 + 반복 카운터 자동 +1 ----
+let micActive = null;
+function attachMic(rowEl, getText, wrapEl){
+  if(!rowEl || rowEl.querySelector('.mic-btn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'mic-btn'; btn.type = 'button'; btn.textContent = '🎤 말하기';
+  const res = document.createElement('div');
+  res.className = 'mic-result';
+  rowEl.appendChild(btn); rowEl.appendChild(res);
+  btn.addEventListener('click', ()=>{
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!R){ res.textContent = '이 브라우저는 음성 인식을 지원하지 않아요 (안드로이드/PC Chrome 사용).'; return; }
+    if(micActive){ try{ micActive.stop(); }catch(e){} if(micActive._btn === btn) return; }
+    const text = (getText()||'').replace(/~/g,'').trim();
+    if(!text){ res.textContent = '읽을 문장이 없어요.'; return; }
+    sdCtx();
+    window.speechSynthesis && window.speechSynthesis.cancel();
+    const rec = new R(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=5; rec._btn = btn;
+    micActive = rec;
+    rec.onstart = ()=>{ btn.classList.add('on'); btn.textContent='⏹ 듣는 중…'; res.textContent='…'; };
+    rec.onend = ()=>{ btn.classList.remove('on'); btn.textContent='🎤 말하기'; if(micActive===rec) micActive=null; };
+    rec.onerror = (e)=>{ res.textContent = e.error==='not-allowed' ? '마이크 권한이 막혀 있어요 (https 확인).' : e.error==='no-speech' ? '소리를 못 들었어요. 다시 눌러보세요.' : '인식 오류: '+e.error; };
+    rec.onresult = (ev)=>{
+      const alts = Array.from(ev.results[0]).map(r=>r.transcript);
+      const r = sdBestMatch({corrected:text}, alts);
+      const thEl = document.getElementById('sdThreshold');
+      const th = (thEl ? parseInt(thEl.value,10) : parseInt(localStorage.getItem('culcom-sd-threshold')||'80',10))/100;
+      const pass = r.score >= th;
+      if(pass){ sdDing(); if(wrapEl) bumpRepeat(wrapEl); } else sdBuzz();
+      let k=0;
+      const colored = text.split(/\s+/).map(w=>{ const nw=sdNorm(w); if(!nw.length) return escapeHtml(w);
+        const ok = nw.every(()=>r.hit[k++]);
+        return ok ? '<span style="color:var(--sage); font-weight:600;">'+escapeHtml(w)+'</span>' : '<span style="color:#d33; text-decoration:underline;">'+escapeHtml(w)+'</span>'; }).join(' ');
+      res.innerHTML = (pass?'🔔 <b>딩동!</b>':'❌ 다시') + ' <span style="color:var(--muted);">('+Math.round(r.score*100)+'%)</span> · 들린 말: ' + escapeHtml(r.text) + '<br>' + colored;
+    };
+    try{ rec.start(); }catch(e){ res.textContent='시작 실패: '+e.message; }
+  });
 }
 
 // ---- 전체 테마 (카드 색과 깔맞춤 · localStorage에 저장) ----
@@ -1885,6 +1937,7 @@ function makeSpeakRow(text){
   const wrapEl = row.querySelector('[data-wrap]');
   initRepeat(wrapEl);
   row.querySelector('.repeat-btn').addEventListener('click', ()=> bumpRepeat(wrapEl));
+  attachMic(row, ()=>text, wrapEl);
   return row;
 }
 function renderGiu(){
@@ -2361,6 +2414,7 @@ function buildDqCard(set, item, qNum){
   const s2Wrap = wrap.querySelector('[data-s2-wrap]');
   initRepeat(s2Wrap);
   wrap.querySelector('[data-s2-repeat]').addEventListener('click', ()=> bumpRepeat(s2Wrap));
+  attachMic(wrap.querySelector('[data-s2-speak]').closest('.speak-row'), ()=>s2El.value.trim(), s2Wrap);
   wrap.querySelectorAll('[data-speak-row]').forEach(row=>{
     const i = parseInt(row.getAttribute('data-speak-row'));
     wireRepeatCounter(row, '[data-speak-btn]', '[data-repeat-wrap]', '[data-repeat-count]', '[data-repeat-btn]', dqPlain(item.answers[i].en));
@@ -2582,6 +2636,7 @@ function renderChunks(chunks){
     item.querySelector('[data-repeat]').addEventListener('click', ()=>{
       bumpRepeat(item.querySelector('[data-wrap]'));
     });
+    attachMic(item.querySelector('.speak-row'), ()=>chunk.title, item.querySelector('[data-wrap]'));
     item.querySelector('.note-del').addEventListener('click', ()=>{
       state.notes = state.notes.filter(n => n.id !== chunk.id);
       renderNotes();
@@ -2650,6 +2705,7 @@ document.getElementById('btnBulkSave').addEventListener('click', ()=>{
 
 // ⚡ 반사 드릴: 뜻(한국어) 보고 → 소리 내서 뱉기 → 정답 확인
 let drillPool = [], drillIdx = 0;
+attachMic(document.getElementById('drillMicRow'), ()=>{ const c = drillPool && drillPool[drillIdx]; return c ? c.title : ''; }, null);
 function showDrillCard(){
   const c = drillPool[drillIdx];
   document.getElementById('drillProg').textContent = `${drillIdx+1} / ${drillPool.length}`;
@@ -2784,7 +2840,7 @@ function buildSpiral(){
 // 데이터: state.freeWritings[] = {korean, english, corrected, date, playCount, dings, tries, lastDing}
 // 기존 항목은 dings/tries가 없으므로 접근 시 0으로 취급
 
-let sd = { idx: -1, rec: null, listening: false, audioCtx: null };
+let sd = { idx: -1, rec: null, listening: false, audioCtx: null, hist: [] };
 
 function sdTarget(item){ return (item.corrected || item.english || '').trim(); }
 function sdGet(item, k){ return item[k] || 0; }
@@ -2792,6 +2848,7 @@ function sdGet(item, k){ return item[k] || 0; }
 function sdPickNext(){
   const arr = state.freeWritings;
   if(arr.length === 0){ sd.idx = -1; return; }
+  if(sd.idx >= 0){ sd.hist.push(sd.idx); if(sd.hist.length > 50) sd.hist.shift(); }
   const order = localStorage.getItem('culcom-sd-order') || 'weak';
   let cand = arr.map((it,i)=>i).filter(i => i !== sd.idx);
   if(cand.length === 0) cand = [0];
@@ -2983,6 +3040,13 @@ function renderFreeWriting(){
   };
   document.getElementById('sdSpeak').onclick = sdStartListening;
   document.getElementById('sdNext').onclick = ()=>{ if(sd.listening){ try{sd.rec.stop();}catch(e){} } sdPickNext(); sdRenderStage(); };
+  document.getElementById('sdPrev').onclick = ()=>{
+    if(sd.listening){ try{sd.rec.stop();}catch(e){} }
+    if(sd.hist.length === 0){ return; }
+    sd.idx = sd.hist.pop();
+    if(sd.idx >= state.freeWritings.length) sd.idx = -1;
+    sdRenderStage(); renderFreeWritingList();
+  };
 
   sdRenderStage();
   renderFreeWritingList();
@@ -3001,7 +3065,7 @@ function renderFreeWritingList(){
   listDiv.innerHTML = arr.map((item, idx)=>`
     <div style="padding:9px 6px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px; ${idx===sd.idx?'background:rgba(91,91,214,0.07); border-radius:6px;':''}">
       <div style="flex:1; min-width:0;">
-        <div style="font-size:13px; line-height:1.4; word-break:break-word;">${escapeHtml(sdTarget(item))}</div>
+        <div style="font-size:14.5px; line-height:1.4; word-break:break-word;">${escapeHtml(sdTarget(item))}</div>
         <div style="font-size:11px; color:var(--muted); margin-top:2px;">🔔 ${sdGet(item,'dings')} / 시도 ${sdGet(item,'tries')}${item.korean ? ' · ' + escapeHtml(item.korean) : ''}</div>
       </div>
       <button class="btn-ghost" style="padding:4px 8px; font-size:11px;" onclick="sdJumpTo(${idx})">▶</button>
@@ -3068,7 +3132,7 @@ function rpAdvance(){
   const hist = document.getElementById('rpHistory');
   while(rp.turn < sc.turns.length && sc.turns[rp.turn].who === 'S'){
     const t = sc.turns[rp.turn];
-    hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-start; max-width:92%; padding:8px 11px; border-radius:12px 12px 12px 3px; background:var(--card-back); font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button></div>`);
+    hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-start; max-width:92%; padding:8px 11px; border-radius:12px 12px 12px 3px; background:var(--card-back); font-size:15px; line-height:1.45;">${escapeHtml(t.en)} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button></div>`);
     if(document.getElementById('rpAutoTts').checked){
       // 마지막 상대 대사만 재생 (연속이면 순서대로 큐잉됨)
       const u = new SpeechSynthesisUtterance(t.en); u.lang='en-US';
@@ -3104,7 +3168,7 @@ function rpJumpTo(k){
 }
 function rpCommitMine(t, passed, heardHtml){
   const hist = document.getElementById('rpHistory');
-  hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-end; max-width:92%; padding:8px 11px; border-radius:12px 12px 3px 12px; background:${passed?'var(--sage)':'#d33'}; color:#fff; font-size:13.5px; line-height:1.45;">${escapeHtml(t.en)} ${passed?'🔔':'❌'} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button><button onclick="rpJumpTo(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🎤</button></div>`);
+  hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-end; max-width:92%; padding:8px 11px; border-radius:12px 12px 3px 12px; background:${passed?'var(--sage)':'#d33'}; color:#fff; font-size:15px; line-height:1.45;">${escapeHtml(t.en)} ${passed?'🔔':'❌'} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button><button onclick="rpJumpTo(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🎤</button></div>`);
   hist.scrollTop = hist.scrollHeight;
 }
 
@@ -3200,6 +3264,7 @@ function wireRoleplay(){
 wireRoleplay();
 
 function sdJumpTo(idx){
+  if(sd.idx >= 0 && sd.idx !== idx) sd.hist.push(sd.idx);
   sd.idx = idx; sdRenderStage(); renderFreeWritingList();
   // 페이지 맨 위가 아니라 드릴 카드로만 이동 (붙여넣기 패널은 지나침)
   const card = document.getElementById('sdStage').closest('.card');
