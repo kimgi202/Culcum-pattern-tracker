@@ -413,8 +413,7 @@ button:active{opacity:.75;}
   </div>
 
   <div class="mode-tabs">
-    <div class="mode-tab active" id="tabUnit">📖 컬컴</div>
-    <div class="mode-tab" id="tabRandom">🎲 랜덤 IH</div>
+    <div class="mode-tab active" id="tabUnit">📖 컬컴 · 🎲 랜덤</div>
     <div class="mode-tab" id="tabGiu">📘 Grammar</div>
     <div class="mode-tab" id="tabFreeWriting">🎤 스피킹 드릴</div>
     <div class="mode-tab" id="tabDq">💬 데일리Q</div>
@@ -439,16 +438,6 @@ button:active{opacity:.75;}
       <option value="1.0">1.0x (보통)</option>
       <option value="1.2">1.2x (빠르게)</option>
     </select>
-  </div>
-
-  <div class="quick-listen">
-    <div class="quick-listen-head">🎧 빠른 듣기 — Claude가 준 교정 문장, 아무거나 붙여넣기</div>
-    <textarea class="attempt quick-listen-box" id="quickListenBox" placeholder="채팅에서 받은 교정 문장을 여기에 붙여넣으세요"></textarea>
-    <div class="speak-row">
-      <button class="speak-btn" id="quickSpeakBtn">🔊 듣고 따라 말하기</button>
-      <span class="repeat-counter" id="quickRepeatWrap"></span>
-      <button class="repeat-btn" id="quickRepeatBtn">말했어요 +1</button>
-    </div>
   </div>
 
   <div class="stats">
@@ -479,11 +468,6 @@ button:active{opacity:.75;}
       <button class="btn-ghost" id="btnNextUnit">다음 단원 →</button>
     </div>
     <div class="deck multi" id="unitDeck"></div>
-  </div>
-
-  <!-- ===== RANDOM MODE ===== -->
-  <div id="randomModeView" class="hidden">
-    <div class="deck" id="randomDeck"></div>
   </div>
 
   <!-- ===== GRAMMAR IN USE MODE ===== -->
@@ -537,6 +521,19 @@ button:active{opacity:.75;}
           🎤 버튼을 누르고 문장을 읽어보세요
         </div>
 
+        <!-- 🔇 무음 리콜 모드: 한국어만 보고 영어 문장을 머릿속/타이핑으로 만들기 -->
+        <div id="sdRecallBox" class="hidden">
+          <textarea id="sdRecallInput" class="attempt" placeholder="영어로 문장을 만들어 입력하세요 (또는 머릿속으로 만든 뒤 바로 '정답 보기')" style="min-height:64px; font-size:15px;"></textarea>
+          <div class="btn-row" style="margin-top:8px;">
+            <button class="btn-primary" id="sdRecallCheck" style="flex:2; font-size:16px; padding:12px 8px;">✅ 채점</button>
+            <button class="btn-ghost" id="sdRecallReveal" style="flex:1; font-size:15px; padding:12px 8px;">👁 정답 보기</button>
+          </div>
+          <div id="sdRecallSelf" class="hidden btn-row" style="margin-top:6px;">
+            <button class="btn-ghost" id="sdRecallOk" style="flex:1; font-size:14px; padding:10px 8px;">🙆 맞게 만들었어요</button>
+            <button class="btn-ghost" id="sdRecallNg" style="flex:1; font-size:14px; padding:10px 8px;">🙅 틀렸어요</button>
+          </div>
+        </div>
+
         <div class="btn-row" style="margin-top:10px;">
           <button class="btn-ghost" id="sdListen" style="flex:1; font-size:15px; padding:14px 8px;">🔊 듣기</button>
           <button class="btn-primary" id="sdSpeak" style="flex:2; font-size:18px; padding:14px 8px;">🎤 말하기</button>
@@ -547,12 +544,15 @@ button:active{opacity:.75;}
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:var(--muted); flex-wrap:wrap; gap:8px;">
-          <span>이 문장 🔔 <b id="sdDings">0</b>회 · 시도 <b id="sdTries">0</b>회</span>
+          <span>이 문장 🔔 <b id="sdDings">0</b>회 · 시도 <b id="sdTries">0</b>회 · 🧠 리콜 <b id="sdRecalls">0</b>회</span>
           <label style="display:flex; align-items:center; gap:6px;">
             판정 <input type="range" id="sdThreshold" min="50" max="100" step="5" value="80" style="width:90px;"> <span id="sdThresholdVal">80%</span>
           </label>
           <label style="display:flex; align-items:center; gap:4px;">
             <input type="checkbox" id="sdAutoNext"> 🔔 후 자동 다음
+          </label>
+          <label style="display:flex; align-items:center; gap:4px;" title="회사에서: 한국어만 보고 영어 문장 만들기 (소리 X)">
+            <input type="checkbox" id="sdRecallMode"> 🔇 무음 리콜
           </label>
         </div>
         <div style="margin-top:8px; font-size:11.5px; color:var(--muted); display:flex; gap:6px; align-items:center;">
@@ -599,6 +599,13 @@ button:active{opacity:.75;}
             <span id="rpKo" class="hidden" style="font-size:15px; color:var(--muted);"></span>
           </div>
           <div id="rpHeard" style="min-height:48px; font-size:15.5px; line-height:1.6; padding:6px 8px; border:1px dashed var(--line); border-radius:6px; color:var(--muted); margin-top:8px;">🎤 눌러서 대답하세요</div>
+          <div id="rpRecallBox" class="hidden" style="margin-top:8px;">
+            <textarea id="rpRecallInput" class="attempt" placeholder="뜻을 보고 내 대사를 영어로 입력 (Enter = 채점)" style="min-height:56px; font-size:15px;"></textarea>
+            <div class="btn-row" style="margin-top:6px;">
+              <button class="btn-primary" id="rpRecallCheck" style="flex:2; font-size:16px; padding:12px 8px;">✅ 채점</button>
+              <button class="btn-ghost" id="rpRecallReveal" style="flex:1; font-size:15px; padding:12px 8px;">👁 정답 보기</button>
+            </div>
+          </div>
           <div class="btn-row" style="margin-top:8px;">
             <button class="btn-ghost" id="rpListen" style="flex:1; font-size:15px; padding:14px 8px;">🔊 듣기</button>
             <button class="btn-primary" id="rpSpeak" style="flex:2; font-size:18px; padding:14px 8px;">🎤 말하기</button>
@@ -621,6 +628,7 @@ button:active{opacity:.75;}
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpAutoTts" checked> 상대 대사 자동 재생</label>
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpHideMine"> 내 대사 가리기 (뜻만 보고 말하기)</label>
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpAutoAdv" checked> 🔔 후 자동 다음 턴</label>
+          <label style="display:flex; align-items:center; gap:4px;" title="회사에서: 뜻만 보고 내 대사를 타이핑 (소리 X)"><input type="checkbox" id="rpRecallMode"> 🔇 무음 리콜</label>
         </div>
       </div>
     </div>
@@ -1429,15 +1437,7 @@ document.getElementById('voiceSelect').addEventListener('change', (e)=>{
 document.getElementById('voiceTest').addEventListener('click', ()=>{
   speakText("Hi, this is how I sound. I hope this helps with your speaking practice!");
 });
-attachMic(document.getElementById('quickSpeakBtn').closest('.speak-row'), ()=>document.getElementById('quickListenBox').value.trim(), document.getElementById('quickRepeatWrap'));
-document.getElementById('quickSpeakBtn').addEventListener('click', ()=>{
-  const text = document.getElementById('quickListenBox').value.trim();
-  if(text) speakText(text);
-});
-document.getElementById('quickRepeatBtn').addEventListener('click', ()=>{
-  bumpRepeat(document.getElementById('quickRepeatWrap'));
-});
-initRepeat(document.getElementById('quickRepeatWrap'));
+// (🎧 빠른 듣기 블록 제거됨 — 스피킹 드릴로 대체)
 
 function repeatVisual(n){
   const total = 5;
@@ -1774,6 +1774,12 @@ function enterEditMode(box, patternId, itemIdx, wrap){
 function renderUnitBar(){
   const bar = document.getElementById('unitBar');
   bar.innerHTML = '';
+  // 🎲 랜덤 칩: 예전 '랜덤 IH' 탭을 컬컴 안으로 합침 (currentUnitIndex === -1)
+  const rchip = document.createElement('div');
+  rchip.className = 'unit-chip' + (currentUnitIndex === -1 ? ' active' : '');
+  rchip.textContent = '🎲 랜덤';
+  rchip.onclick = ()=>{ currentUnitIndex = -1; renderUnitDeck(); };
+  bar.appendChild(rchip);
   UNITS.forEach((u, idx)=>{
     const chip = document.createElement('div');
     chip.className = 'unit-chip' + (idx === currentUnitIndex ? ' active' : '');
@@ -1784,20 +1790,24 @@ function renderUnitBar(){
 }
 function renderUnitDeck(){
   renderUnitBar();
-  const unit = UNITS[currentUnitIndex];
   const deck = document.getElementById('unitDeck');
   deck.innerHTML = '';
+  document.getElementById('subtitleText').textContent = currentUnitIndex === -1
+    ? "무작위 패턴 뽑기 · 덜 한 패턴이 더 자주 나와요"
+    : "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습";
+  if(currentUnitIndex === -1){ renderRandomDeck(deck); return; }
+  const unit = UNITS[currentUnitIndex];
   unit.patternIds.forEach(pid=>{
     const p = PATTERNS.find(x=>x.id===pid);
     if(p) deck.appendChild(buildCard(p));
   });
 }
 document.getElementById('btnPrevUnit').addEventListener('click', ()=>{
-  currentUnitIndex = (currentUnitIndex - 1 + UNITS.length) % UNITS.length;
+  currentUnitIndex = currentUnitIndex <= -1 ? UNITS.length - 1 : currentUnitIndex - 1;
   renderUnitDeck();
 });
 document.getElementById('btnNextUnit').addEventListener('click', ()=>{
-  currentUnitIndex = (currentUnitIndex + 1) % UNITS.length;
+  currentUnitIndex = currentUnitIndex >= UNITS.length - 1 ? -1 : currentUnitIndex + 1;
   renderUnitDeck();
 });
 
@@ -1813,8 +1823,8 @@ function weightedPick(excludeId){
   }
   return items[items.length-1].id;
 }
-function renderRandomDeck(){
-  const deck = document.getElementById('randomDeck');
+function renderRandomDeck(deck){
+  deck = deck || document.getElementById('unitDeck');
   deck.innerHTML = '';
   const p = PATTERNS.find(x=>x.id===state.currentId) || PATTERNS[0];
   const card = buildCard(p);
@@ -1826,7 +1836,7 @@ function renderRandomDeck(){
   document.getElementById('btnNextRandom').addEventListener('click', ()=>{
     state.currentId = weightedPick(state.currentId);
     saveState();
-    renderRandomDeck();
+    renderRandomDeck(deck);
   });
 }
 
@@ -2449,33 +2459,27 @@ function renderDqDeck(){
 function setMode(newMode){
   mode = newMode;
   document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
-  document.getElementById('tabRandom').classList.toggle('active', mode==='random');
   document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
   document.getElementById('tabFreeWriting').classList.toggle('active', mode==='freewriting');
   document.getElementById('tabDq').classList.toggle('active', mode==='dq');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
-  document.getElementById('randomModeView').classList.toggle('hidden', mode!=='random');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
   document.getElementById('freeWritingModeView').classList.toggle('hidden', mode!=='freewriting');
   document.getElementById('dqModeView').classList.toggle('hidden', mode!=='dq');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
-    : mode==='random'
-    ? "무작위 패턴 뽑기 · IH 확장까지 한 번에"
     : mode==='giu'
     ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
     : mode==='dq'
     ? "컬컴 Daily Question · 질문 듣기 → 내 답 먼저 → 모범답안 비교"
     : "한국말 → 영작 → 발음 따라하기 · 실시간 영작 일지";
   if(mode==='unit') renderUnitDeck();
-  else if(mode==='random') renderRandomDeck();
   else if(mode==='giu') renderGiu();
   else if(mode==='freewriting') renderFreeWriting();
   else if(mode==='dq') renderDqDeck();
 }
 document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
-document.getElementById('tabRandom').addEventListener('click', ()=>setMode('random'));
 document.getElementById('tabFreeWriting').addEventListener('click', ()=>setMode('freewriting'));
 document.getElementById('tabDq').addEventListener('click', ()=>setMode('dq'));
 
@@ -2859,14 +2863,16 @@ function sdPickNext(){
     sd.idx = (sd.idx + 1) % arr.length;
   }else{
     // weak: 🔔 적은 순 → 오래 안 한 순 → 같은 값이면 랜덤
+    const kf = sdIsRecall() ? 'recalls' : 'dings';
+    const lf = sdIsRecall() ? 'lastRecall' : 'lastDing';
     cand.sort((a,b)=>{
-      const d = sdGet(arr[a],'dings') - sdGet(arr[b],'dings');
+      const d = sdGet(arr[a],kf) - sdGet(arr[b],kf);
       if(d !== 0) return d;
-      const t = (arr[a].lastDing||'') < (arr[b].lastDing||'') ? -1 : 1;
+      const t = (arr[a][lf]||'') < (arr[b][lf]||'') ? -1 : 1;
       return t;
     });
-    const minD = sdGet(arr[cand[0]],'dings');
-    const pool = cand.filter(i => sdGet(arr[i],'dings') === minD);
+    const minD = sdGet(arr[cand[0]],kf);
+    const pool = cand.filter(i => sdGet(arr[i],kf) === minD);
     sd.idx = pool[Math.floor(Math.random()*pool.length)];
   }
 }
@@ -2879,18 +2885,86 @@ function sdRenderStage(){
   empty.classList.add('hidden'); stage.classList.remove('hidden');
   if(sd.idx < 0 || sd.idx >= arr.length) sdPickNext();
   const item = arr[sd.idx];
-  document.getElementById('sdSentence').textContent = sdTarget(item);
+  const recall = sdIsRecall();
   const ko = document.getElementById('sdKo');
-  ko.textContent = item.korean || '(뜻 없음)';
+  if(recall){
+    // 무음 리콜: 한국어를 크게, 영어는 숨김 (👁 로 확인)
+    document.getElementById('sdSentence').textContent = item.korean || '(뜻 없음 — 이 문장은 리콜 불가)';
+    ko.textContent = sdTarget(item);
+    document.getElementById('sdKoToggle').textContent = '👁 영어 보기';
+  }else{
+    document.getElementById('sdSentence').textContent = sdTarget(item);
+    ko.textContent = item.korean || '(뜻 없음)';
+    document.getElementById('sdKoToggle').textContent = '👁 뜻 보기';
+  }
   ko.classList.add('hidden');
-  document.getElementById('sdKoToggle').textContent = '👁 뜻 보기';
   document.getElementById('sdDings').textContent = sdGet(item,'dings');
   document.getElementById('sdTries').textContent = sdGet(item,'tries');
+  document.getElementById('sdRecalls').textContent = sdGet(item,'recalls');
   const heard = document.getElementById('sdHeard');
-  heard.innerHTML = '🎤 버튼을 누르고 문장을 읽어보세요';
+  heard.innerHTML = recall ? '🧠 한국어를 보고 영어 문장을 만드세요 — 주어 먼저, 동사 하나, 한 번에 끝까지' : '🎤 버튼을 누르고 문장을 읽어보세요';
   heard.style.color = 'var(--muted)';
+  // 리콜 모드 UI 토글
+  document.getElementById('sdRecallBox').classList.toggle('hidden', !recall);
+  document.getElementById('sdRecallSelf').classList.add('hidden');
+  document.getElementById('sdRecallInput').value = '';
+  document.getElementById('sdListen').classList.toggle('hidden', recall);
+  document.getElementById('sdSpeak').classList.toggle('hidden', recall);
   const done = arr.filter(it => sdGet(it,'dings') > 0).length;
-  document.getElementById('sdProgress').textContent = `${sd.idx+1}/${arr.length} · 🔔 1회 이상 ${done}개`;
+  const rdone = arr.filter(it => sdGet(it,'recalls') > 0).length;
+  document.getElementById('sdProgress').textContent = recall
+    ? `${sd.idx+1}/${arr.length} · 🧠 리콜 1회 이상 ${rdone}개`
+    : `${sd.idx+1}/${arr.length} · 🔔 1회 이상 ${done}개`;
+}
+
+// ---- 🔇 무음 리콜 모드 (회사용: 소리 없이 한→영 문장 만들기) ----
+function sdIsRecall(){ return localStorage.getItem('culcom-sd-recall') === '1'; }
+function sdRecallMark(item, ok){
+  item.tries = (item.tries||0) + 1;
+  if(ok){ item.recalls = (item.recalls||0) + 1; item.lastRecall = new Date().toISOString(); }
+  document.getElementById('sdTries').textContent = item.tries;
+  document.getElementById('sdRecalls').textContent = item.recalls || 0;
+  saveState(); renderFreeWritingList();
+  if(ok && document.getElementById('sdAutoNext').checked){
+    setTimeout(()=>{ sdPickNext(); sdRenderStage(); }, 900);
+  }
+}
+// 타이핑 채점: 음성 드릴과 같은 LCS 비교 + 같은 판정 기준(슬라이더)
+function sdRecallCheck(){
+  const item = state.freeWritings[sd.idx]; if(!item) return;
+  const typed = document.getElementById('sdRecallInput').value.trim();
+  if(!typed){ document.getElementById('sdRecallInput').focus(); return; }
+  const res = sdBestMatch(item, [typed]);
+  const th = parseInt(document.getElementById('sdThreshold').value,10)/100;
+  const pass = res.score >= th;
+  const words = sdTarget(item).split(/\s+/);
+  let k = 0;
+  const colored = words.map(w => {
+    const nw = sdNorm(w);
+    if(nw.length === 0) return escapeHtml(w);
+    const ok = nw.every(()=> res.hit[k++]);
+    return ok ? `<span style="color:var(--sage); font-weight:600;">${escapeHtml(w)}</span>`
+              : `<span style="color:#d33; text-decoration:underline;">${escapeHtml(w)}</span>`;
+  }).join(' ');
+  const heardEl = document.getElementById('sdHeard');
+  heardEl.style.color = 'var(--ink)';
+  heardEl.innerHTML = `${pass ? '🔔 <b>딩동!</b>' : '❌ 다시'} <span style="color:var(--muted);">(${Math.round(res.score*100)}%)</span><br>` +
+    `<span style="font-size:12px; color:var(--muted);">내 문장: ${escapeHtml(typed)}</span><br>${colored}`;
+  if(pass) sdDing(); else sdBuzz();
+  // 채점 후엔 영어 보이게
+  document.getElementById('sdKo').classList.remove('hidden');
+  document.getElementById('sdKoToggle').textContent = '🙈 영어 숨기기';
+  sdRecallMark(item, pass);
+}
+// 타이핑 없이: 머릿속으로 만들고 정답 보고 셀프 채점
+function sdRecallReveal(){
+  const item = state.freeWritings[sd.idx]; if(!item) return;
+  document.getElementById('sdKo').classList.remove('hidden');
+  document.getElementById('sdKoToggle').textContent = '🙈 영어 숨기기';
+  const heardEl = document.getElementById('sdHeard');
+  heardEl.style.color = 'var(--ink)';
+  heardEl.innerHTML = `<span style="font-size:20px; font-weight:700;">${escapeHtml(sdTarget(item))}</span><br><span style="font-size:12px; color:var(--muted);">머릿속 문장과 비교해서 셀프 채점하세요</span>`;
+  document.getElementById('sdRecallSelf').classList.remove('hidden');
 }
 
 // ---- 비교 로직 ----
@@ -3039,6 +3113,15 @@ function renderFreeWriting(){
     item.playCount = (item.playCount||0) + 1;
   };
   document.getElementById('sdSpeak').onclick = sdStartListening;
+  // 🔇 무음 리콜 모드 배선
+  const recallChk = document.getElementById('sdRecallMode');
+  recallChk.checked = sdIsRecall();
+  recallChk.onchange = ()=>{ localStorage.setItem('culcom-sd-recall', recallChk.checked ? '1' : '0'); sdRenderStage(); };
+  document.getElementById('sdRecallCheck').onclick = sdRecallCheck;
+  document.getElementById('sdRecallReveal').onclick = sdRecallReveal;
+  document.getElementById('sdRecallOk').onclick = ()=>{ const it = state.freeWritings[sd.idx]; if(!it) return; sdDing(); document.getElementById('sdRecallSelf').classList.add('hidden'); sdRecallMark(it, true); };
+  document.getElementById('sdRecallNg').onclick = ()=>{ const it = state.freeWritings[sd.idx]; if(!it) return; document.getElementById('sdRecallSelf').classList.add('hidden'); sdRecallMark(it, false); };
+  document.getElementById('sdRecallInput').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sdRecallCheck(); } });
   document.getElementById('sdNext').onclick = ()=>{ if(sd.listening){ try{sd.rec.stop();}catch(e){} } sdPickNext(); sdRenderStage(); };
   document.getElementById('sdPrev').onclick = ()=>{
     if(sd.listening){ try{sd.rec.stop();}catch(e){} }
@@ -3133,7 +3216,7 @@ function rpAdvance(){
   while(rp.turn < sc.turns.length && sc.turns[rp.turn].who === 'S'){
     const t = sc.turns[rp.turn];
     hist.insertAdjacentHTML('beforeend', `<div data-turn="${rp.turn}" style="align-self:flex-start; max-width:92%; padding:8px 11px; border-radius:12px 12px 12px 3px; background:var(--card-back); font-size:15px; line-height:1.45;">${escapeHtml(t.en)} <button onclick="rpSayLine(${rp.turn})" style="border:none; background:none; cursor:pointer; font-size:13px; padding:0 2px;">🔊</button></div>`);
-    if(document.getElementById('rpAutoTts').checked){
+    if(document.getElementById('rpAutoTts').checked && !rpIsRecall()){ // 무음 리콜이면 소리 X
       // 마지막 상대 대사만 재생 (연속이면 순서대로 큐잉됨)
       const u = new SpeechSynthesisUtterance(t.en); u.lang='en-US';
       u.rate = parseFloat(localStorage.getItem('culcom-tts-rate') || '0.9');
@@ -3148,15 +3231,55 @@ function rpAdvance(){
   document.getElementById('rpProgress').textContent = `${Math.min(rp.turn+1, sc.turns.length)}/${sc.turns.length}`;
   if(rp.turn >= sc.turns.length){ rpFinish(); return; }
   const t = sc.turns[rp.turn];
-  const hide = document.getElementById('rpHideMine').checked;
+  const rpRecall = rpIsRecall();
+  const hide = rpRecall || document.getElementById('rpHideMine').checked;
+  document.getElementById('rpRecallBox').classList.toggle('hidden', !rpRecall);
+  document.getElementById('rpListen').classList.toggle('hidden', rpRecall);
+  document.getElementById('rpSpeak').classList.toggle('hidden', rpRecall);
+  document.getElementById('rpRetry').classList.toggle('hidden', rpRecall);
+  document.getElementById('rpRecallInput').value = '';
   const sEl = document.getElementById('rpSentence');
   sEl.textContent = hide ? '· · ·' : t.en;
   sEl.dataset.hidden = hide ? '1' : '0';
   const ko = document.getElementById('rpKo'); ko.textContent = t.ko || '(뜻 없음)';
   if(hide){ ko.classList.remove('hidden'); } else { ko.classList.add('hidden'); }
   document.getElementById('rpKoToggle').textContent = ko.classList.contains('hidden') ? '👁 뜻 보기' : '🙈 뜻 숨기기';
-  const h = document.getElementById('rpHeard'); h.innerHTML = '🎤 눌러서 대답하세요'; h.style.color='var(--muted)';
+  const h = document.getElementById('rpHeard'); h.innerHTML = rpRecall ? '🧠 뜻을 보고 영어로 대답을 만드세요' : '🎤 눌러서 대답하세요'; h.style.color='var(--muted)';
   document.getElementById('rpMyTurn').classList.remove('hidden');
+  if(rpRecall) setTimeout(()=>document.getElementById('rpRecallInput').focus(), 50);
+}
+
+// ---- 🔇 롤플레잉 무음 리콜 (타이핑으로 내 대사 만들기) ----
+function rpIsRecall(){ return localStorage.getItem('culcom-rp-recall') === '1'; }
+function rpRecallCheck(){
+  const t = rp.scene && rp.scene.turns[rp.turn]; if(!t) return;
+  const typed = document.getElementById('rpRecallInput').value.trim();
+  if(!typed){ document.getElementById('rpRecallInput').focus(); return; }
+  const res = sdBestMatch({corrected:t.en}, [typed]);
+  const th = parseInt(document.getElementById('sdThreshold').value,10)/100;
+  t.tries = (t.tries||0)+1; rp.runTries++;
+  const pass = res.score >= th;
+  if(pass){ t.recalls=(t.recalls||0)+1; rp.runDings++; sdDing(); } else sdBuzz();
+  let k=0;
+  const colored = t.en.split(/\s+/).map(w=>{ const nw=sdNorm(w); if(!nw.length) return escapeHtml(w);
+    const ok = nw.every(()=>res.hit[k++]);
+    return ok ? `<span style="color:var(--sage); font-weight:600;">${escapeHtml(w)}</span>` : `<span style="color:#d33; text-decoration:underline;">${escapeHtml(w)}</span>`; }).join(' ');
+  const heardEl = document.getElementById('rpHeard');
+  heardEl.style.color='var(--ink)';
+  heardEl.innerHTML = `${pass?'🔔 <b>딩동!</b>':'❌ 다시'} <span style="color:var(--muted);">(${Math.round(res.score*100)}%)</span><br><span style="font-size:12px; color:var(--muted);">내 문장: ${escapeHtml(typed)}</span><br>${colored}`;
+  document.getElementById('rpSentence').textContent = t.en;
+  saveState();
+  if(pass){
+    if(document.getElementById('rpAutoAdv').checked){ rpCommitMine(t, true); setTimeout(rpAdvance, 900); }
+    else { heardEl.innerHTML += '<br><span style="font-size:11.5px; color:var(--muted);">⏭ 로 넘어가세요</span>'; rp.passedCurrent = true; }
+  }
+}
+function rpRecallReveal(){
+  const t = rp.scene && rp.scene.turns[rp.turn]; if(!t) return;
+  document.getElementById('rpSentence').textContent = t.en;
+  const heardEl = document.getElementById('rpHeard');
+  heardEl.style.color='var(--ink)';
+  heardEl.innerHTML = `<span style="font-size:12px; color:var(--muted);">정답을 봤어요 — 한 번 더 타이핑해서 채점하거나 ⏭ 로 넘어가세요</span>`;
 }
 
 function rpSayLine(k){ const t = rp.scene && rp.scene.turns[k]; if(t) speakText(t.en); }
@@ -3244,6 +3367,12 @@ function wireRoleplay(){
     saveState(); rpRenderSceneSelect();
   });
   document.getElementById('rpSpeak').addEventListener('click', rpStartListening);
+  const rpChk = document.getElementById('rpRecallMode');
+  rpChk.checked = rpIsRecall();
+  rpChk.onchange = ()=>{ localStorage.setItem('culcom-rp-recall', rpChk.checked ? '1' : '0'); if(rp.scene && rp.turn < rp.scene.turns.length){ rp.turn--; rpAdvance(); } };
+  document.getElementById('rpRecallCheck').addEventListener('click', rpRecallCheck);
+  document.getElementById('rpRecallReveal').addEventListener('click', rpRecallReveal);
+  document.getElementById('rpRecallInput').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); rpRecallCheck(); } });
   document.getElementById('rpListen').addEventListener('click', ()=>{ const t=rp.scene&&rp.scene.turns[rp.turn]; if(t) speakText(t.en); });
   document.getElementById('rpSkip').addEventListener('click', ()=>{ if(rp.listening){try{rp.rec.stop();}catch(e){}} const t=rp.scene.turns[rp.turn]; rpCommitMine(t, !!rp.passedCurrent); rp.passedCurrent=false; rpAdvance(); });
   document.getElementById('rpRetry').addEventListener('click', ()=>{ if(rp.listening){try{rp.rec.stop();}catch(e){}} rp.passedCurrent=false; const h=document.getElementById('rpHeard'); h.innerHTML='🎤 눌러서 다시 말해보세요'; h.style.color='var(--muted)'; setTimeout(rpStartListening, 150); });
