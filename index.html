@@ -34,9 +34,10 @@ body{
 .mono{font-family:'IBM Plex Mono',monospace;}
 
 .wrap{
-  max-width:660px; margin:0 auto;
+  max-width:960px; margin:0 auto 0 clamp(16px, 5vw, 72px);
   padding:26px 18px 60px 40px;
   position:relative;
+  zoom:1.12;
 }
 /* 넓은 화면: 본문을 왼쪽으로 치우쳐 배치 → 오른쪽에 노트/청크 패널 공간 확보 */
 @media (min-width: 1120px){
@@ -409,7 +410,6 @@ button:active{opacity:.75;}
       <div class="title">📖 English Pattern Practice 🗣️</div>
       <div class="subtitle" id="subtitleText">교재 단원별 학습 · 무작위 IH 확장</div>
     </div>
-    <div class="badge">40+2과</div>
   </div>
 
   <div class="mode-tabs">
@@ -452,10 +452,6 @@ button:active{opacity:.75;}
     <div class="stat">
       <div class="stat-num mono" id="statIH">0</div>
       <div class="stat-label">IH 확장 완료</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num mono" id="statCoverage">0/42</div>
-      <div class="stat-label">패턴 커버리지</div>
     </div>
   </div>
   <div id="saveStatus" style="margin-top:6px;text-align:right;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-2);">저장 대기중...</div>
@@ -737,8 +733,6 @@ button:active{opacity:.75;}
     </div>
   </div>
 
-  <div class="grid-title">패턴 커버리지 (진하면 많이 연습한 패턴)</div>
-  <div class="grid" id="progressGrid"></div>
 
   <div class="footer-note">완벽한 문장이 아니어도 괜찮아요. 일단 써보고, 예문이랑 비교하는 게 핵심이에요.</div>
 </div>
@@ -2490,10 +2484,12 @@ function renderStats(){
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statIH').textContent = state.ihTotal || 0;
   const covered = Object.keys(state.counts).filter(k => state.counts[k] > 0).length;
-  document.getElementById('statCoverage').textContent = `${covered}/42`;
+  const cov = document.getElementById('statCoverage');
+  if(cov) cov.textContent = `${covered}/42`;
 }
 function renderGrid(){
   const grid = document.getElementById('progressGrid');
+  if(!grid) return;
   grid.innerHTML = '';
   PATTERNS.forEach(p=>{
     const c = state.counts[p.id]||0;
