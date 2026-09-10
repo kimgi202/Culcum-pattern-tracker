@@ -134,6 +134,27 @@ body{
   background:var(--card); color:var(--muted); cursor:pointer; white-space:nowrap;
 }
 .unit-chip.active{background:var(--coral); color:#fff; border-color:var(--coral);}
+/* 교정노트 */
+.cn-card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
+.cn-card.pinned{border-color:var(--coral);}
+.cn-meta{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--muted-2); font-family:'IBM Plex Mono',monospace; margin-bottom:4px;}
+.cn-badge{display:inline-block; padding:1px 8px; border-radius:10px; background:var(--sage-dim); color:var(--ink); font-size:10.5px;}
+.cn-title{font-weight:700; font-size:13.5px; margin-bottom:4px;}
+.cn-body{white-space:pre-wrap; font-size:12.5px; line-height:1.55; word-break:break-word;}
+.cn-body.clamped{max-height:130px; overflow:hidden; position:relative;}
+.cn-body.clamped::after{content:''; position:absolute; left:0; right:0; bottom:0; height:36px; background:linear-gradient(transparent, var(--card));}
+.cn-more{font-size:11px; color:var(--coral); cursor:pointer; margin-top:4px; display:inline-block;}
+.cn-actions{display:flex; gap:8px; margin-top:6px;}
+.cn-act{cursor:pointer; font-size:13px; opacity:.55;}
+.cn-act:hover{opacity:1;}
+.cn-practice{margin-top:8px; border-top:1px dashed var(--line); padding-top:6px;}
+.cn-practice-head{display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--muted); cursor:pointer; user-select:none;}
+.cn-sent{padding:7px 0; border-bottom:1px dashed var(--line);}
+.cn-sent:last-child{border-bottom:none;}
+.cn-sent-text{font-size:12.5px; line-height:1.5; margin-bottom:4px;}
+.cn-sent-btns{display:flex; gap:6px;}
+.cn-mini{padding:3px 12px; font-size:12px;}
+.cn-sent-result{font-size:12px; line-height:1.5; margin-top:4px;}
 .unit-nav{display:flex; justify-content:space-between; margin-top:10px; gap:8px;}
 
 /* card */
@@ -413,10 +434,10 @@ button:active{opacity:.75;}
   </div>
 
   <div class="mode-tabs">
-    <div class="mode-tab active" id="tabUnit">📖 컬컴 · 🎲 랜덤</div>
-    <div class="mode-tab" id="tabGiu">📘 Grammar</div>
+    <div class="mode-tab active" id="tabPattern">📖 패턴 연습</div>
     <div class="mode-tab" id="tabFreeWriting">🎤 스피킹 드릴</div>
     <div class="mode-tab" id="tabDq">💬 데일리Q</div>
+    <div class="mode-tab" id="tabCn">📝 교정노트</div>
   </div>
 
   <div class="theme-row">
@@ -455,6 +476,12 @@ button:active{opacity:.75;}
     </div>
   </div>
   <div id="saveStatus" style="margin-top:6px;text-align:right;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-2);">저장 대기중...</div>
+
+  <!-- 패턴 연습 서브 선택: 컬컴·랜덤 / Grammar -->
+  <div class="unit-bar" id="patternSubBar" style="margin-bottom:2px;">
+    <div class="unit-chip active" id="subChipCulcom">📖 컬컴 · 🎲 랜덤</div>
+    <div class="unit-chip" id="subChipGiu">📘 Grammar</div>
+  </div>
 
   <!-- ===== UNIT MODE ===== -->
   <div id="unitModeView">
@@ -658,6 +685,35 @@ button:active{opacity:.75;}
       </div>
     </div>
     <div class="deck" id="dqDeck"></div>
+  </div>
+
+  <!-- ===== 교정노트 MODE (Claude 교정 아카이브) ===== -->
+  <div id="cnModeView" class="hidden">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="checkpoint-head" id="cnAddHead" style="padding:0;">
+        <div class="checkpoint-title">➕ 새 교정노트 (채팅에서 받은 교정 여기로!)</div>
+        <div class="chev open" id="cnAddChev">▶</div>
+      </div>
+      <div class="checkpoint-body open" id="cnAddBody" style="padding:10px 0 0;">
+        <div class="ih-hint">① 교정 받은 Claude 채팅에서 아래 버튼으로 복사한 요청을 붙여넣기 → ② Claude가 준 JSON을 아래 칸에 붙여넣고 저장 → 여러 교정이 노트로 한 번에!<br>💡 JSON 없이 그냥 교정 내용을 통째로 붙여넣고 제목·태그만 달아서 저장해도 돼요 (노션 필기처럼).</div>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn-check" id="cnCopyPrompt">📋 Claude 정리 요청 복사</button>
+        </div>
+        <div class="copy-toast" id="cnToast">복사됐어요! 교정 받은 채팅에 붙여넣어 보세요 ✅</div>
+        <div class="add-note-form" style="padding-top:8px;">
+          <input type="text" id="cnTitle" placeholder="제목 (비우면 첫 줄이 제목이 돼요)">
+          <select class="unit-filter" id="cnTag" style="margin:6px 0;"></select>
+          <textarea class="attempt" id="cnInput" placeholder='교정 내용 붙여넣기 (틀린 문장 → 고친 문장, 이유, 원어민 표현, 청크...)&#10;&#10;또는 Claude가 준 JSON 붙여넣기 → 자동으로 여러 노트 저장' style="min-height:110px;"></textarea>
+          <div class="btn-row">
+            <button class="btn-primary" id="cnSave">저장</button>
+            <button class="btn-ghost hidden" id="cnCancelEdit">수정 취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="unit-bar" id="cnFilterBar"></div>
+    <input type="text" class="unit-filter" id="cnSearch" placeholder="🔍 검색 (제목·내용)" style="width:100%;margin:6px 0 10px;">
+    <div id="cnList"></div>
   </div>
 
   <button class="notes-fab" id="notesFab" title="메타인지 노트">📝<span class="fab-badge" id="fabBadge">0</span></button>
@@ -2450,32 +2506,333 @@ function renderDqDeck(){
 }
 // ===================== END DAILY QUESTION =====================
 
+// ===================== 교정노트 (Claude 교정 아카이브) =====================
+const CN_TAGS = ['문법','표현·뉘앙스','오픽','비즈니스','기타'];
+const CN_JSON_GUIDE = `[
+  {"title":"짧은 제목 (핵심 규칙 한 줄)","tag":"문법 | 표현·뉘앙스 | 오픽 | 비즈니스 | 기타 중 하나","body":"틀린 문장 → 고친 문장\\n왜: 이유 + 자가점검 질문\\n원어민 표현: ...\\n🔁 청크: ..."}
+]`;
+function cnAll(){
+  if(!Array.isArray(state.attempts['claude-notes'])) state.attempts['claude-notes'] = [];
+  return state.attempts['claude-notes'];
+}
+let cnFilter = 'all', cnEditId = null;
+const cnExpanded = new Set();
+
+function cnPopulateTagSelect(){
+  const sel = document.getElementById('cnTag');
+  sel.innerHTML = '';
+  CN_TAGS.forEach(t=>{
+    const o = document.createElement('option');
+    o.value = t; o.textContent = '🏷 ' + t;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('cnAddHead').addEventListener('click', ()=>{
+  document.getElementById('cnAddBody').classList.toggle('open');
+  document.getElementById('cnAddChev').classList.toggle('open');
+});
+
+document.getElementById('cnCopyPrompt').addEventListener('click', ()=>{
+  const msg = `이 채팅에서 나를 교정해준 내용들을 내 스터디 앱의 교정노트용 JSON으로 정리해줘!\n\n형식은 아래랑 똑같이:\n\n${CN_JSON_GUIDE}\n\n교정 하나당 노트 하나로, body에는 틀린 문장→고친 문장, 이유, 원어민 표현, 암기 청크까지 통째로 담아줘. 다른 설명 없이 JSON만 코드블록으로 줘!`;
+  navigator.clipboard.writeText(msg).then(()=>{
+    const t = document.getElementById('cnToast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2500);
+  });
+});
+
+function cnMakeNote(title, tag, body){
+  return { id: 'cn' + Date.now() + Math.random().toString(36).slice(2,6), ts: new Date().toISOString(), title: title||'', tag: CN_TAGS.includes(tag) ? tag : '기타', body: body||'', pin: false };
+}
+
+document.getElementById('cnSave').addEventListener('click', ()=>{
+  const raw = document.getElementById('cnInput').value.trim();
+  if(!raw){ alert('내용을 붙여넣어 주세요!'); return; }
+  const list = cnAll();
+  // 수정 모드
+  if(cnEditId){
+    const n = list.find(x=>x.id===cnEditId);
+    if(n){
+      n.title = document.getElementById('cnTitle').value.trim() || raw.split('\n')[0].slice(0,40);
+      n.tag = document.getElementById('cnTag').value;
+      n.body = raw;
+    }
+    cnEditId = null;
+    document.getElementById('cnCancelEdit').classList.add('hidden');
+  }else if(raw.startsWith('[') || raw.startsWith('{')){
+    // JSON 일괄 저장
+    try{
+      let arr = JSON.parse(raw.replace(/^```json|^```|```$/gm,'').trim());
+      if(!Array.isArray(arr)) arr = [arr];
+      let ok = 0;
+      arr.forEach(x=>{
+        if(x && (x.body || x.title)){ list.unshift(cnMakeNote(x.title, x.tag, x.body)); ok++; }
+      });
+      if(!ok){ alert('저장할 항목을 못 찾았어요. JSON에 title/body가 있는지 확인!'); return; }
+    }catch(e){ alert('JSON 해석 실패: ' + e.message + '\n\n일반 텍스트라면 [ { 로 시작하지 않게 붙여넣어 주세요.'); return; }
+  }else{
+    const title = document.getElementById('cnTitle').value.trim() || raw.split('\n')[0].slice(0,40);
+    list.unshift(cnMakeNote(title, document.getElementById('cnTag').value, raw));
+  }
+  document.getElementById('cnInput').value = '';
+  document.getElementById('cnTitle').value = '';
+  saveState();
+  renderCn();
+});
+
+document.getElementById('cnCancelEdit').addEventListener('click', ()=>{
+  cnEditId = null;
+  document.getElementById('cnInput').value = '';
+  document.getElementById('cnTitle').value = '';
+  document.getElementById('cnCancelEdit').classList.add('hidden');
+});
+
+document.getElementById('cnSearch').addEventListener('input', ()=>renderCn());
+
+function renderCnFilterBar(){
+  const bar = document.getElementById('cnFilterBar');
+  bar.innerHTML = '';
+  const list = cnAll();
+  const chips = [
+    {v:'all', label:`전체 ${list.length}`},
+    {v:'pin', label:`⭐ ${list.filter(n=>n.pin).length}`},
+    ...CN_TAGS.map(t=>({v:t, label:`${t} ${list.filter(n=>n.tag===t).length}`}))
+  ];
+  chips.forEach(c=>{
+    const chip = document.createElement('div');
+    chip.className = 'unit-chip' + (cnFilter===c.v ? ' active' : '');
+    chip.textContent = c.label;
+    chip.onclick = ()=>{ cnFilter = c.v; renderCn(); };
+    bar.appendChild(chip);
+  });
+}
+
+function renderCn(){
+  cnPopulateTagSelect();
+  renderCnFilterBar();
+  const listEl = document.getElementById('cnList');
+  listEl.innerHTML = '';
+  const q = (document.getElementById('cnSearch').value||'').trim().toLowerCase();
+  let items = cnAll().slice();
+  if(cnFilter==='pin') items = items.filter(n=>n.pin);
+  else if(cnFilter!=='all') items = items.filter(n=>n.tag===cnFilter);
+  if(q) items = items.filter(n=>(n.title+' '+n.body).toLowerCase().includes(q));
+  items.sort((a,b)=>(b.pin?1:0)-(a.pin?1:0) || (b.ts||'').localeCompare(a.ts||''));
+  if(!items.length){
+    listEl.innerHTML = '<div class="ih-hint" style="text-align:center;padding:18px 0;">아직 노트가 없어요. 교정 받은 채팅에서 정리 요청을 복사해 시작해 보세요! 📝</div>';
+    return;
+  }
+  items.forEach(n=>{
+    const card = document.createElement('div');
+    card.className = 'cn-card' + (n.pin ? ' pinned' : '');
+    const long = (n.body||'').length > 280 || (n.body||'').split('\n').length > 7;
+    const open = cnExpanded.has(n.id);
+    const sents = cnExtractEnglish(n.body);
+    card.innerHTML = `
+      <div class="cn-meta"><span class="cn-badge">${n.tag}</span><span>${(n.ts||'').slice(0,10)}</span></div>
+      <div class="cn-title">${n.pin?'⭐ ':''}${escHtml(n.title)}</div>
+      <div class="cn-body ${long && !open ? 'clamped' : ''}">${escHtml(n.body)}</div>
+      ${long ? `<span class="cn-more">${open?'접기 ▲':'더보기 ▼'}</span>` : ''}
+      ${sents.length ? `
+      <div class="cn-practice">
+        <div class="cn-practice-head">
+          <span>🗣 말하기·듣기 연습 (${sents.length}문장)</span>
+          <span style="display:flex;gap:8px;align-items:center;">
+            <span class="cn-act" data-act="playall" title="전체 듣기">🔊 전체</span>
+            <span class="chev" data-chev>▶</span>
+          </span>
+        </div>
+        <div class="cn-practice-body hidden">
+          ${sents.map((s,si)=>`
+            <div class="cn-sent">
+              <div class="cn-sent-text">${escHtml(s)}</div>
+              <div class="cn-sent-btns">
+                <button class="btn-ghost cn-mini" data-listen="${si}">🔊</button>
+                <button class="btn-check cn-mini" data-speak="${si}">🎤</button>
+              </div>
+              <div class="cn-sent-result" data-result="${si}"></div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="cn-actions">
+        <span class="cn-act" data-act="pin" title="고정">${n.pin?'⭐':'☆'}</span>
+        <span class="cn-act" data-act="edit" title="수정">✏️</span>
+        <span class="cn-act" data-act="del" title="삭제">🗑</span>
+      </div>`;
+    // 말하기·듣기 배선
+    if(sents.length){
+      const pHead = card.querySelector('.cn-practice-head');
+      const pBody = card.querySelector('.cn-practice-body');
+      const chev = card.querySelector('[data-chev]');
+      pHead.onclick = (e)=>{
+        if(e.target.dataset.act === 'playall') return;
+        pBody.classList.toggle('hidden');
+        chev.classList.toggle('open');
+      };
+      card.querySelector('[data-act="playall"]').onclick = (e)=>{ e.stopPropagation(); sdCtx(); cnPlayAll(sents); };
+      card.querySelectorAll('[data-listen]').forEach(b=>{
+        b.onclick = ()=> speakText(sents[parseInt(b.dataset.listen,10)].replace(/~/g,''));
+      });
+      card.querySelectorAll('[data-speak]').forEach(b=>{
+        b.onclick = ()=>{
+          const si = parseInt(b.dataset.speak,10);
+          cnStartListening(sents[si], card.querySelector(`[data-result="${si}"]`), b);
+        };
+      });
+    }
+    const more = card.querySelector('.cn-more');
+    if(more) more.onclick = ()=>{ open ? cnExpanded.delete(n.id) : cnExpanded.add(n.id); renderCn(); };
+    card.querySelector('[data-act="pin"]').onclick = ()=>{ n.pin = !n.pin; saveState(); renderCn(); };
+    card.querySelector('[data-act="edit"]').onclick = ()=>{
+      cnEditId = n.id;
+      document.getElementById('cnTitle').value = n.title;
+      document.getElementById('cnTag').value = n.tag;
+      document.getElementById('cnInput').value = n.body;
+      document.getElementById('cnCancelEdit').classList.remove('hidden');
+      document.getElementById('cnAddBody').classList.add('open');
+      document.getElementById('cnAddChev').classList.add('open');
+      window.scrollTo({top:0, behavior:'smooth'});
+    };
+    card.querySelector('[data-act="del"]').onclick = ()=>{
+      if(confirm('이 노트를 삭제할까요?')){
+        const arr = cnAll();
+        const i = arr.findIndex(x=>x.id===n.id);
+        if(i>=0) arr.splice(i,1);
+        saveState(); renderCn();
+      }
+    };
+    listEl.appendChild(card);
+  });
+}
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- 교정노트 말하기·듣기 ----
+// 노트 본문에서 연습할 영어 문장 추출
+function cnExtractEnglish(body){
+  const out = [];
+  (body||'').split('\n').forEach(line=>{
+    let t = line.trim();
+    if(!t) return;
+    // 화살표가 있으면 교정된 쪽(마지막 →/⇒ 뒤)만
+    const arrow = t.split(/→|⇒|->/);
+    if(arrow.length > 1) t = arrow[arrow.length-1].trim();
+    // — 나 | 로 영어|한국어 나뉘면 영어 쪽만
+    t.split(/—|\|/).map(x=>x.trim()).forEach(seg=>{
+      // 앞머리 이모지·불릿·라벨 제거
+      let s = seg.replace(/^[✅❌🔁⭐☆•\-\*\d\.\)\s]+/,'')
+                 .replace(/^(원어민 표현|원어민|청크|Drill chunk|예문|교정|Why|이유)\s*[:：]\s*/i,'')
+                 .replace(/^["'“”]+|["'“”]+$/g,'').trim();
+      if(!s) return;
+      const alpha = (s.match(/[A-Za-z]/g)||[]).length;
+      const hangul = (s.match(/[가-힣]/g)||[]).length;
+      const words = (s.match(/[A-Za-z][A-Za-z']*/g)||[]).length;
+      // 영어 비중이 높고 2단어 이상인 것만
+      if(alpha >= 6 && words >= 2 && alpha > hangul * 2){
+        if(!out.includes(s)) out.push(s);
+      }
+    });
+  });
+  return out;
+}
+
+let cnRec = null, cnListening = false;
+function cnStartListening(sentence, resultEl, btn){
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!R){
+    resultEl.innerHTML = '이 브라우저는 음성 인식을 지원하지 않아요. Chrome에서 열어주세요.';
+    resultEl.style.color = '#d33';
+    return;
+  }
+  if(cnListening){ try{ cnRec.stop(); }catch(e){} return; }
+  sdCtx();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  const rec = new R();
+  rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 5;
+  cnRec = rec;
+  rec.onstart = ()=>{ cnListening = true; btn.textContent = '⏹'; resultEl.innerHTML = '…'; resultEl.style.color = 'var(--muted)'; };
+  rec.onerror = (e)=>{
+    cnListening = false; btn.textContent = '🎤';
+    resultEl.innerHTML = e.error==='not-allowed' ? '마이크 권한을 확인해 주세요.' : e.error==='no-speech' ? '소리를 못 들었어요.' : '인식 오류: '+e.error;
+    resultEl.style.color = '#d33';
+  };
+  rec.onend = ()=>{ cnListening = false; btn.textContent = '🎤'; };
+  rec.onresult = (ev)=>{
+    const alts = Array.from(ev.results[0]).map(r=>r.transcript);
+    const target = sdNorm(sentence);
+    let best = {score:-1, hit:[], text:''};
+    alts.forEach(a=>{ const r = sdAlign(target, sdNorm(a)); if(r.score > best.score) best = {...r, text:a}; });
+    const pass = best.score >= 0.8;
+    pass ? sdDing() : sdBuzz();
+    let k = 0;
+    const colored = sentence.split(/\s+/).map(w=>{
+      const nw = sdNorm(w);
+      if(!nw.length) return escHtml(w);
+      const ok = nw.every(()=>best.hit[k++]);
+      return ok ? `<span style="color:var(--sage);font-weight:600;">${escHtml(w)}</span>`
+                : `<span style="color:#d33;text-decoration:underline;">${escHtml(w)}</span>`;
+    }).join(' ');
+    resultEl.style.color = 'var(--ink)';
+    resultEl.innerHTML = `${pass?'🔔 <b>딩동!</b>':'❌ 다시'} <span style="color:var(--muted);">(${Math.round(best.score*100)}%)</span><br>` +
+      `<span style="font-size:11px;color:var(--muted);">들린 말: ${escHtml(best.text)}</span><br>${colored}`;
+  };
+  try{ rec.start(); }catch(e){ resultEl.innerHTML = '시작 실패: ' + e.message; }
+}
+
+function cnPlayAll(sentences){
+  if(!('speechSynthesis' in window) || !sentences.length) return;
+  window.speechSynthesis.cancel();
+  let i = 0;
+  const next = ()=>{
+    if(i >= sentences.length) return;
+    const u = new SpeechSynthesisUtterance(sentences[i].replace(/~/g,''));
+    u.lang = 'en-US';
+    u.rate = parseFloat(localStorage.getItem('culcom-tts-rate') || '0.9');
+    u.onend = ()=>{ i++; setTimeout(next, 450); };
+    window.speechSynthesis.speak(u);
+  };
+  next();
+}
+// ---- END 교정노트 말하기·듣기 ----
+// ===================== END 교정노트 =====================
+
+let lastPatternMode = 'unit';
 function setMode(newMode){
   mode = newMode;
-  document.getElementById('tabUnit').classList.toggle('active', mode==='unit');
-  document.getElementById('tabGiu').classList.toggle('active', mode==='giu');
+  if(mode==='unit' || mode==='giu') lastPatternMode = mode;
+  document.getElementById('tabPattern').classList.toggle('active', mode==='unit'||mode==='giu');
   document.getElementById('tabFreeWriting').classList.toggle('active', mode==='freewriting');
   document.getElementById('tabDq').classList.toggle('active', mode==='dq');
+  document.getElementById('tabCn').classList.toggle('active', mode==='cn');
+  document.getElementById('patternSubBar').classList.toggle('hidden', !(mode==='unit'||mode==='giu'));
+  document.getElementById('subChipCulcom').classList.toggle('active', mode==='unit');
+  document.getElementById('subChipGiu').classList.toggle('active', mode==='giu');
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
   document.getElementById('freeWritingModeView').classList.toggle('hidden', mode!=='freewriting');
   document.getElementById('dqModeView').classList.toggle('hidden', mode!=='dq');
+  document.getElementById('cnModeView').classList.toggle('hidden', mode!=='cn');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
     : mode==='giu'
     ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
     : mode==='dq'
     ? "컬컴 Daily Question · 질문 듣기 → 내 답 먼저 → 모범답안 비교"
+    : mode==='cn'
+    ? "Claude 교정 아카이브 · 채팅에서 받은 교정 모아 복습"
     : "한국말 → 영작 → 발음 따라하기 · 실시간 영작 일지";
   if(mode==='unit') renderUnitDeck();
   else if(mode==='giu') renderGiu();
   else if(mode==='freewriting') renderFreeWriting();
   else if(mode==='dq') renderDqDeck();
+  else if(mode==='cn') renderCn();
 }
-document.getElementById('tabGiu').addEventListener('click', ()=>setMode('giu'));
-document.getElementById('tabUnit').addEventListener('click', ()=>setMode('unit'));
+document.getElementById('tabPattern').addEventListener('click', ()=>setMode(lastPatternMode));
+document.getElementById('subChipCulcom').addEventListener('click', ()=>setMode('unit'));
+document.getElementById('subChipGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabFreeWriting').addEventListener('click', ()=>setMode('freewriting'));
 document.getElementById('tabDq').addEventListener('click', ()=>setMode('dq'));
+document.getElementById('tabCn').addEventListener('click', ()=>setMode('cn'));
 
 // ---- STATS & GRID (공통) ----
 function renderStats(){
