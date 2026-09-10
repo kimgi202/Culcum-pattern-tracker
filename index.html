@@ -2509,7 +2509,7 @@ function renderDqDeck(){
 // ===================== 교정노트 (Claude 교정 아카이브) =====================
 const CN_TAGS = ['문법','표현·뉘앙스','오픽','비즈니스','기타'];
 const CN_JSON_GUIDE = `[
-  {"title":"짧은 제목 (핵심 규칙 한 줄)","tag":"문법 | 표현·뉘앙스 | 오픽 | 비즈니스 | 기타 중 하나","body":"틀린 문장 → 고친 문장\\n왜: 이유 + 자가점검 질문\\n원어민 표현: ...\\n🔁 청크: ..."}
+  {"title":"짧은 제목 (핵심 규칙 한 줄)","tag":"문법 | 표현·뉘앙스 | 오픽 | 비즈니스 | 기타 중 하나","body":"상황: 어떤 상황·맥락에서 나온/쓰는 표현인지 한 줄\\n틀린 문장 → 고친 문장\\n왜: 이유 + 자가점검 질문\\n원어민 표현: ...\\n🔁 청크: ..."}
 ]`;
 function cnAll(){
   if(!Array.isArray(state.attempts['claude-notes'])) state.attempts['claude-notes'] = [];
@@ -2534,7 +2534,7 @@ document.getElementById('cnAddHead').addEventListener('click', ()=>{
 });
 
 document.getElementById('cnCopyPrompt').addEventListener('click', ()=>{
-  const msg = `이 채팅에서 나를 교정해준 내용들을 내 스터디 앱의 교정노트용 JSON으로 정리해줘!\n\n형식은 아래랑 똑같이:\n\n${CN_JSON_GUIDE}\n\n교정 하나당 노트 하나로, body에는 틀린 문장→고친 문장, 이유, 원어민 표현, 암기 청크까지 통째로 담아줘. 다른 설명 없이 JSON만 코드블록으로 줘!`;
+  const msg = `이 채팅에서 나를 교정해준 내용들을 내 스터디 앱의 교정노트용 JSON으로 정리해줘!\n\n형식은 아래랑 똑같이:\n\n${CN_JSON_GUIDE}\n\n교정 하나당 노트 하나로, body 첫 줄에는 내가 그 문장을 물어봤던 상황·맥락(언제 어디서 누구한테 쓰는 표현인지)을 꼭 담고, 이어서 틀린 문장→고친 문장, 이유, 원어민 표현, 암기 청크까지 통째로 담아줘. 다른 설명 없이 JSON만 코드블록으로 줘!`;
   navigator.clipboard.writeText(msg).then(()=>{
     const t = document.getElementById('cnToast');
     t.classList.add('show');
@@ -2721,7 +2721,7 @@ function cnExtractEnglish(body){
     t.split(/—|\|/).map(x=>x.trim()).forEach(seg=>{
       // 앞머리 이모지·불릿·라벨 제거
       let s = seg.replace(/^[✅❌🔁⭐☆•\-\*\d\.\)\s]+/,'')
-                 .replace(/^(원어민 표현|원어민|청크|Drill chunk|예문|교정|Why|이유)\s*[:：]\s*/i,'')
+                 .replace(/^(상황|원어민 표현|원어민|청크|Drill chunk|예문|교정|Why|이유)\s*[:：]\s*/i,'')
                  .replace(/^["'“”]+|["'“”]+$/g,'').trim();
       if(!s) return;
       const alpha = (s.match(/[A-Za-z]/g)||[]).length;
