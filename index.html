@@ -657,6 +657,7 @@ button:active{opacity:.75;}
         <div id="rpDone" class="hidden" style="margin-top:10px; text-align:center; padding:14px; border:1px dashed var(--line); border-radius:8px;">
           <div style="font-size:15px; font-weight:600;">🎉 대화 끝!</div>
           <div id="rpDoneStat" style="font-size:12px; color:var(--muted); margin:4px 0 10px;"></div>
+          <div id="rpLoopStat" style="font-size:12.5px; color:var(--coral); font-weight:600; margin:0 0 10px;"></div>
           <button class="btn-primary" id="rpAgain">🔁 다시</button>
         </div>
 
@@ -664,6 +665,10 @@ button:active{opacity:.75;}
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpAutoTts" checked> 상대 대사 자동 재생</label>
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpHideMine"> 내 대사 가리기 (뜻만 보고 말하기)</label>
           <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="rpAutoAdv" checked> 🔔 후 자동 다음 턴</label>
+          <label style="display:flex; align-items:center; gap:4px;" title="대화가 끝나면 잠시 후 자동으로 처음부터 다시 시작 — 목표 라운드까지 손 안 대고 반복해요">
+            <input type="checkbox" id="rpLoopMode"> 🔁 자동 반복
+            <input type="number" id="rpLoopN" min="1" max="50" value="10" style="width:46px; font-size:11.5px; padding:2px 4px; border:1px solid var(--line); border-radius:4px;">회
+          </label>
           <label style="display:flex; align-items:center; gap:4px;" title="회사에서: 뜻만 보고 내 대사를 타이핑 (소리 X)"><input type="checkbox" id="rpRecallMode"> 🔇 무음 리콜</label>
         </div>
       </div>
@@ -3622,7 +3627,12 @@ function renderFreeWritingList(){
 
 // ========== ROLEPLAY (대화 반복) ==========
 // 저장: state.attempts['sd-scenes'] = { scenes:[{id,title,turns:[{who:'S'|'M',en,ko,dings,tries}],runs}] }
-let rp = { scene: null, turn: -1, runDings: 0, runTries: 0, listening: false, rec: null };
+let rp = { scene: null, turn: -1, runDings: 0, runTries: 0, listening: false, rec: null, round: 0, loopTimer: null };
+
+// ---- 🔁 대화 자동 반복 (한 대화를 목표 라운드까지 자동 재시작) ----
+function rpIsLoop(){ return localStorage.getItem('culcom-rp-loop') === '1'; }
+function rpLoopN(){ const n = parseInt(localStorage.getItem('culcom-rp-loop-n')||'10',10); return (isNaN(n)||n<1) ? 10 : Math.min(n,50); }
+function rpClearLoopTimer(){ if(rp.loopTimer){ clearTimeout(rp.loopTimer); rp.loopTimer = null; } }
 
 function rpScenes(){
   const a = state.attempts['sd-scenes'];
@@ -3658,6 +3668,13 @@ function rpRenderSceneSelect(){
 }
 
 function rpStart(){
+  // 수동 ▶ 시작: 라운드 카운터를 처음부터
+  rpClearLoopTimer();
+  rp.round = 0;
+  rpRun();
+}
+// 한 회차 시작 (자동 반복 시 라운드 카운터 유지)
+function rpRun(){
   const scenes = rpScenes();
   const id = document.getElementById('rpSceneSel').value;
   rp.scene = scenes.find(s=>s.id===id) || scenes[0];
@@ -3689,7 +3706,7 @@ function rpAdvance(){
     rp.turn++;
   }
   hist.scrollTop = hist.scrollHeight;
-  document.getElementById('rpProgress').textContent = `${Math.min(rp.turn+1, sc.turns.length)}/${sc.turns.length}`;
+  document.getElementById('rpProgress').textContent = `${Math.min(rp.turn+1, sc.turns.length)}/${sc.turns.length}` + (rpIsLoop() ? ` · 🔁 ${rp.round+1}/${rpLoopN()}번째` : '');
   if(rp.turn >= sc.turns.length){ rpFinish(); return; }
   const t = sc.turns[rp.turn];
   const rpRecall = rpIsRecall();
@@ -3746,6 +3763,7 @@ function rpRecallReveal(){
 function rpSayLine(k){ const t = rp.scene && rp.scene.turns[k]; if(t) speakText(t.en); }
 function rpJumpTo(k){
   if(rp.listening){ try{ rp.rec.stop(); }catch(e){} }
+  rpClearLoopTimer();
   document.querySelectorAll('#rpHistory [data-turn]').forEach(el=>{ if(parseInt(el.dataset.turn,10) >= k) el.remove(); });
   document.getElementById('rpDone').classList.add('hidden');
   rp.passedCurrent = false; rp.turn = k - 1; rpAdvance();
@@ -3763,6 +3781,28 @@ function rpFinish(){
   const done = document.getElementById('rpDone'); done.classList.remove('hidden');
   const mine = sc.turns.filter(t=>t.who==='M').length;
   document.getElementById('rpDoneStat').textContent = `이번 회차 🔔 ${rp.runDings}/${mine} · 이 대화 ${sc.runs}회째`;
+  const loopEl = document.getElementById('rpLoopStat');
+  if(rpIsLoop()){
+    rp.round++;
+    const N = rpLoopN();
+    if(rp.round >= N){
+      loopEl.textContent = `🎉 자동 반복 ${N}라운드 완주! 이 대화, 입에 붙었어요.`;
+      rp.round = 0;
+    }else{
+      loopEl.textContent = `🔁 라운드 ${rp.round}/${N} — 잠시 후 처음부터 자동으로 다시 시작해요…`;
+      rpClearLoopTimer();
+      const sceneAt = sc.id;
+      rp.loopTimer = setTimeout(()=>{
+        rp.loopTimer = null;
+        const stage = document.getElementById('rpStage');
+        const visible = stage && stage.offsetParent !== null;
+        if(!rpIsLoop() || !visible || !rp.scene || rp.scene.id !== sceneAt) return;
+        rpRun();
+      }, 1800);
+    }
+  }else{
+    loopEl.textContent = '';
+  }
   saveState(); rpRenderSceneSelect();
 }
 
@@ -3820,13 +3860,34 @@ function wireRoleplay(){
     alert(`대화 ${r.scenes.length}개 저장됐어요! 🎉`);
   });
   document.getElementById('rpStart').addEventListener('click', rpStart);
-  document.getElementById('rpAgain').addEventListener('click', rpStart);
+  document.getElementById('rpAgain').addEventListener('click', ()=>{ rpClearLoopTimer(); rpRun(); });
   document.getElementById('rpDelete').addEventListener('click', ()=>{
     const id = document.getElementById('rpSceneSel').value; if(!id) return;
     if(!confirm('이 대화를 삭제할까요?')) return;
+    rpClearLoopTimer();
     rpSetScenes(rpScenes().filter(s=>s.id!==id)); if(rp.scene && rp.scene.id===id){ rp.scene=null; document.getElementById('rpStage').classList.add('hidden'); }
     saveState(); rpRenderSceneSelect();
   });
+  // 🔁 자동 반복 배선
+  const rpLoopChk = document.getElementById('rpLoopMode');
+  rpLoopChk.checked = rpIsLoop();
+  rpLoopChk.onchange = ()=>{
+    localStorage.setItem('culcom-rp-loop', rpLoopChk.checked ? '1' : '0');
+    if(!rpLoopChk.checked){ rpClearLoopTimer(); document.getElementById('rpLoopStat').textContent = ''; }
+    rp.round = 0;
+    if(rp.scene && rp.turn >= 0 && rp.turn < rp.scene.turns.length){
+      document.getElementById('rpProgress').textContent = `${Math.min(rp.turn+1, rp.scene.turns.length)}/${rp.scene.turns.length}` + (rpIsLoop() ? ` · 🔁 1/${rpLoopN()}번째` : '');
+    }
+  };
+  const rpLoopNEl = document.getElementById('rpLoopN');
+  rpLoopNEl.value = String(rpLoopN());
+  rpLoopNEl.onchange = ()=>{
+    let v = parseInt(rpLoopNEl.value,10);
+    if(isNaN(v) || v < 1) v = 10;
+    if(v > 50) v = 50;
+    rpLoopNEl.value = String(v);
+    localStorage.setItem('culcom-rp-loop-n', String(v));
+  };
   document.getElementById('rpSpeak').addEventListener('click', rpStartListening);
   const rpChk = document.getElementById('rpRecallMode');
   rpChk.checked = rpIsRecall();
