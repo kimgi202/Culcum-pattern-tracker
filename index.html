@@ -535,6 +535,12 @@ button:active{opacity:.75;}
       <div id="sdStage" class="hidden">
         <div id="sdSentence" style="font-size:24px; line-height:1.45; font-weight:700; margin:12px 0 8px; word-break:keep-all;"></div>
 
+        <!-- 🔁 반복 모드 카운터 -->
+        <div id="sdRepBar" style="display:none; align-items:center; gap:8px; margin:0 0 8px; flex-wrap:wrap;">
+          <span id="sdRepCount" style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:700; color:var(--coral); background:rgba(139,92,246,0.09); border:1px solid rgba(139,92,246,0.3); border-radius:20px; padding:3px 10px;">🔁 0/10</span>
+          <span id="sdRepDots" style="font-size:12px; letter-spacing:3px;"></span>
+        </div>
+
         <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
           <button class="btn-ghost" id="sdKoToggle" style="padding:6px 12px; font-size:13px;">👁 뜻 보기</button>
           <span id="sdKo" class="hidden" style="font-size:15px; color:var(--muted);"></span>
@@ -573,6 +579,13 @@ button:active{opacity:.75;}
           </label>
           <label style="display:flex; align-items:center; gap:4px;">
             <input type="checkbox" id="sdAutoNext"> 🔔 후 자동 다음
+          </label>
+          <label style="display:flex; align-items:center; gap:4px;" title="딩동이 나도 다음으로 안 넘어가고 같은 문장을 목표 횟수까지 반복해요. 잠시 후 마이크가 자동으로 다시 켜집니다.">
+            <input type="checkbox" id="sdLoopMode"> 🔁 반복
+            <input type="number" id="sdLoopN" min="1" max="50" value="10" style="width:46px; font-size:11.5px; padding:2px 4px; border:1px solid var(--line); border-radius:4px;">회
+          </label>
+          <label style="display:flex; align-items:center; gap:4px;" title="반복 모드에서 매회 원어민 음성을 먼저 들려준 뒤 마이크가 켜져요 (섀도잉)">
+            <input type="checkbox" id="sdLoopEcho"> 🔊 매회 듣고 따라하기
           </label>
           <label style="display:flex; align-items:center; gap:4px;" title="회사에서: 한국어만 보고 영어 문장 만들기 (소리 X)">
             <input type="checkbox" id="sdRecallMode"> 🔇 무음 리콜
@@ -1421,13 +1434,19 @@ function markIhDone(){
 
 let selectedVoiceURI = localStorage.getItem('culcom-voice-uri') || null;
 
-function speakText(text){
+function speakText(text, onEnd){
   if(!('speechSynthesis' in window)){
     alert('이 브라우저는 음성 재생을 지원하지 않아요.');
+    if(onEnd) onEnd();
     return;
   }
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
+  if(onEnd){
+    let called = false;
+    const fire = ()=>{ if(called) return; called = true; onEnd(); };
+    utter.onend = fire; utter.onerror = fire;
+  }
   utter.lang = 'en-US';
   utter.rate = parseFloat(localStorage.getItem('culcom-tts-rate') || '0.9');
   const voices = window.speechSynthesis.getVoices();
@@ -3197,7 +3216,48 @@ function buildSpiral(){
 // 데이터: state.freeWritings[] = {korean, english, corrected, date, playCount, dings, tries, lastDing}
 // 기존 항목은 dings/tries가 없으므로 접근 시 0으로 취급
 
-let sd = { idx: -1, rec: null, listening: false, audioCtx: null, hist: [] };
+let sd = { idx: -1, rec: null, listening: false, audioCtx: null, hist: [], rep: 0, repIdx: -1, loopTimer: null };
+
+// ---- 🔁 반복 모드 (같은 문장을 목표 횟수까지 자동 재청취로 반복) ----
+function sdIsLoop(){ return localStorage.getItem('culcom-sd-loop') === '1'; }
+function sdLoopN(){ const n = parseInt(localStorage.getItem('culcom-sd-loop-n')||'10',10); return (isNaN(n)||n<1) ? 10 : Math.min(n,50); }
+function sdLoopEcho(){ return localStorage.getItem('culcom-sd-loop-echo') === '1'; }
+function sdClearLoopTimer(){ if(sd.loopTimer){ clearTimeout(sd.loopTimer); sd.loopTimer = null; } }
+function sdRepUI(){
+  const bar = document.getElementById('sdRepBar');
+  const on = sdIsLoop() && !sdIsRecall();
+  bar.style.display = on ? 'flex' : 'none';
+  if(!on) return;
+  const N = sdLoopN();
+  document.getElementById('sdRepCount').textContent = `🔁 ${sd.rep}/${N}` + (sd.rep >= N ? ' 완료!' : '');
+  const shown = Math.min(N, 20); // 점은 최대 20개까지만 표시
+  let dots = '';
+  for(let i=0;i<shown;i++){
+    dots += `<span style="color:${i < sd.rep ? 'var(--sage)' : 'var(--muted-2)'}">${i < sd.rep ? '●' : '○'}</span>`;
+  }
+  document.getElementById('sdRepDots').innerHTML = dots;
+}
+// 자동 재청취 예약: 화면·문장·모드가 그대로일 때만 마이크를 다시 켠다
+function sdScheduleRelisten(delay){
+  sdClearLoopTimer();
+  const idxAt = sd.idx;
+  sd.loopTimer = setTimeout(()=>{
+    sd.loopTimer = null;
+    const stage = document.getElementById('sdStage');
+    const visible = stage && stage.offsetParent !== null;
+    if(!sdIsLoop() || sdIsRecall() || sd.idx !== idxAt || sd.listening || !visible) return;
+    const item = state.freeWritings[sd.idx]; if(!item) return;
+    if(sdLoopEcho()){
+      speakText(sdTarget(item).replace(/~/g,''), ()=>{
+        setTimeout(()=>{
+          if(sdIsLoop() && !sdIsRecall() && sd.idx === idxAt && !sd.listening) sdStartListening();
+        }, 250);
+      });
+    }else{
+      sdStartListening();
+    }
+  }, delay);
+}
 
 function sdTarget(item){ return (item.corrected || item.english || '').trim(); }
 function sdGet(item, k){ return item[k] || 0; }
@@ -3239,6 +3299,9 @@ function sdRenderStage(){
   if(sd.idx < 0 || sd.idx >= arr.length) sdPickNext();
   const item = arr[sd.idx];
   const recall = sdIsRecall();
+  sdClearLoopTimer();
+  if(sd.repIdx !== sd.idx){ sd.rep = 0; sd.repIdx = sd.idx; }
+  sdRepUI();
   const ko = document.getElementById('sdKo');
   if(recall){
     // 무음 리콜: 한국어를 크게, 영어는 숨김 (👁 로 확인)
@@ -3255,7 +3318,8 @@ function sdRenderStage(){
   document.getElementById('sdTries').textContent = sdGet(item,'tries');
   document.getElementById('sdRecalls').textContent = sdGet(item,'recalls');
   const heard = document.getElementById('sdHeard');
-  heard.innerHTML = recall ? '🧠 한국어를 보고 영어 문장을 만드세요 — 주어 먼저, 동사 하나, 한 번에 끝까지' : '🎤 버튼을 누르고 문장을 읽어보세요';
+  heard.innerHTML = recall ? '🧠 한국어를 보고 영어 문장을 만드세요 — 주어 먼저, 동사 하나, 한 번에 끝까지'
+    : (sdIsLoop() ? `🎤 버튼을 한 번만 누르세요 — 🔁 ${sdLoopN()}회까지 같은 문장으로 계속 이어가요 (마이크 자동 재시작)` : '🎤 버튼을 누르고 문장을 읽어보세요');
   heard.style.color = 'var(--muted)';
   // 리콜 모드 UI 토글
   document.getElementById('sdRecallBox').classList.toggle('hidden', !recall);
@@ -3392,6 +3456,7 @@ function sdStartListening(){
     return;
   }
   if(sd.listening){ try{ sd.rec.stop(); }catch(e){} return; }
+  sdClearLoopTimer(); // 수동 시작 시 예약된 자동 재청취 취소 (중복 방지)
   sdCtx(); // 사용자 탭 시점에 오디오 컨텍스트 활성화
   window.speechSynthesis && window.speechSynthesis.cancel();
   const rec = new R();
@@ -3436,7 +3501,28 @@ function sdStartListening(){
     document.getElementById('sdTries').textContent = item.tries || 0;
     saveState();
     renderFreeWritingList();
-    if(pass && document.getElementById('sdAutoNext').checked){
+    if(sdIsLoop()){
+      // 🔁 반복 모드: 같은 문장 유지, 목표 도달까지 자동으로 마이크 재시작
+      const N = sdLoopN();
+      if(pass){
+        sd.rep++;
+        sdRepUI();
+        if(sd.rep >= N){
+          heardEl.innerHTML += `<br><span style="color:var(--coral); font-weight:700;">🎉 ${N}회 달성! 입에 붙었어요.</span>`;
+          if(document.getElementById('sdAutoNext').checked){
+            sd.loopTimer = setTimeout(()=>{ sd.loopTimer=null; sdPickNext(); sdRenderStage(); }, 1500);
+          }else{
+            heardEl.innerHTML += `<br><span style="font-size:12px; color:var(--muted);">더 반복해도 좋고, [다음 ▶]으로 넘어가도 돼요.</span>`;
+          }
+        }else{
+          heardEl.innerHTML += `<br><span style="font-size:12px; color:var(--muted);">🔁 ${sd.rep}/${N} — 잠시 후 마이크가 다시 켜져요. 같은 문장 그대로!</span>`;
+          sdScheduleRelisten(1100);
+        }
+      }else{
+        heardEl.innerHTML += `<br><span style="font-size:12px; color:var(--muted);">🔁 괜찮아요, 같은 문장으로 다시! 잠시 후 마이크가 켜져요.</span>`;
+        sdScheduleRelisten(1400);
+      }
+    }else if(pass && document.getElementById('sdAutoNext').checked){
       setTimeout(()=>{ sdPickNext(); sdRenderStage(); }, 900);
     }
   };
@@ -3454,6 +3540,28 @@ function renderFreeWriting(){
   const auto = document.getElementById('sdAutoNext');
   auto.checked = localStorage.getItem('culcom-sd-autonext') === '1';
   auto.onchange = ()=> localStorage.setItem('culcom-sd-autonext', auto.checked ? '1' : '0');
+  // 🔁 반복 모드 배선
+  const loopChk = document.getElementById('sdLoopMode');
+  loopChk.checked = sdIsLoop();
+  loopChk.onchange = ()=>{
+    localStorage.setItem('culcom-sd-loop', loopChk.checked ? '1' : '0');
+    if(!loopChk.checked) sdClearLoopTimer();
+    sd.rep = 0; sd.repIdx = sd.idx;
+    sdRenderStage();
+  };
+  const loopN = document.getElementById('sdLoopN');
+  loopN.value = String(sdLoopN());
+  loopN.onchange = ()=>{
+    let v = parseInt(loopN.value,10);
+    if(isNaN(v) || v < 1) v = 10;
+    if(v > 50) v = 50;
+    loopN.value = String(v);
+    localStorage.setItem('culcom-sd-loop-n', String(v));
+    sdRepUI();
+  };
+  const loopEcho = document.getElementById('sdLoopEcho');
+  loopEcho.checked = sdLoopEcho();
+  loopEcho.onchange = ()=> localStorage.setItem('culcom-sd-loop-echo', loopEcho.checked ? '1' : '0');
 
   document.getElementById('sdKoToggle').onclick = ()=>{
     const ko = document.getElementById('sdKo');
