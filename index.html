@@ -45,6 +45,15 @@ body{
     margin: 0 auto 0 max(60px, calc(50% - 560px));
   }
 }
+/* 모바일: zoom:1.12가 화면 폭보다 커지게 만들어서 오른쪽이 잘리던 문제 → 확대 해제 + 여백 축소 */
+@media (max-width: 700px){
+  .wrap{
+    zoom:1;
+    margin-left:14px;
+    padding:20px 12px 50px 18px;
+  }
+  .spiral{ width:24px; }
+}
 
 .spiral{
   position:fixed; left:0; top:0; bottom:0; width:34px;
