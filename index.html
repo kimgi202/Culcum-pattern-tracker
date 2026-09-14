@@ -22,6 +22,7 @@
   --line: #DBDBF0;
   --hole: #EEF0FB;
   --hole-ring: #C6C6E8;
+  --notes-w: min(360px, 44vw); /* 메모 패널 폭 — 본문 밀어내는 양과 항상 일치시키는 기준값 */
 }
 *{box-sizing:border-box;}
 body{
@@ -303,6 +304,25 @@ button:active{opacity:.75;}
 .footer-note{text-align:center; font-size:11px; color:var(--muted-2); margin-top:22px; line-height:1.6;}
 .hidden{display:none !important;}
 
+/* ---- 구조 훈련 (한국어 뜻 → 영어 어순 배열) ---- */
+.struct-answer{
+  display:flex; flex-wrap:wrap; align-content:flex-start; gap:7px; min-height:48px;
+  padding:10px; border:1.5px dashed var(--sage-dim); border-radius:8px;
+  background:var(--card-back); margin-bottom:10px;
+}
+.struct-pool{display:flex; flex-wrap:wrap; gap:7px; padding:2px 0;}
+.struct-chip{
+  font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
+  padding:7px 12px; border-radius:7px; border:1px solid var(--line);
+  background:#fff; color:var(--ink); cursor:pointer; user-select:none; transition:.1s;
+}
+.struct-chip:active{transform:scale(0.94);}
+.struct-answer .struct-chip{background:var(--sage); color:#fff; border-color:var(--sage);}
+.struct-answer .struct-chip.wrong{background:#E4635B; border-color:#E4635B;}
+.struct-result{margin-top:10px; font-size:13.5px; line-height:1.6; padding:10px 12px; border-radius:8px;}
+.struct-result.correct{background:#E1F5E7; color:#1F7A44;}
+.struct-result.incorrect{background:#FCE9E8; color:#B23B3B;}
+
 /* ---- floating notes ---- */
 .notes-fab{
   position:fixed; right:16px; bottom:16px; z-index:1000;
@@ -321,7 +341,7 @@ button:active{opacity:.75;}
 }
 .notes-float{
   position:fixed; right:16px; bottom:82px; z-index:999;
-  width:min(440px, calc(100vw - 32px));
+  width:var(--notes-w);
   max-height:82vh;
   background:var(--card); border:1px solid var(--line); border-radius:12px;
   box-shadow:0 12px 34px rgba(50,50,120,.25);
@@ -329,6 +349,13 @@ button:active{opacity:.75;}
   zoom:1; /* 부모(.wrap) zoom 영향 차단 → 모바일에서 화면 밖으로 넘쳐 잘리던 문제 방지 */
 }
 .notes-float.open{display:flex;}
+/* 메모가 열려있을 때 본문을 그만큼 오른쪽에서 비워서, 겹치지 않고 나란히 보이게 함 */
+@media (max-width: 1119px){
+  body.notes-open .wrap{
+    margin-right: calc(var(--notes-w) + 28px);
+    transition: margin-right .2s ease;
+  }
+}
 .notes-float-head{
   display:flex; justify-content:space-between; align-items:center;
   padding:12px 14px; border-bottom:1px solid var(--line);
@@ -339,12 +366,12 @@ button:active{opacity:.75;}
   cursor:pointer; padding:0 6px; line-height:1;
 }
 .float-tab{
-  font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:6px;
+  font-size:12.5px; font-weight:700; padding:6px 10px; border-radius:6px;
   border:1px solid var(--line); background:#fff; color:var(--muted); cursor:pointer;
 }
 .float-tab.active{background:var(--sage); color:#fff; border-color:var(--sage);}
 .unit-filter{
-  width:100%; font-size:11.5px; padding:7px 9px; border-radius:6px;
+  width:100%; font-size:12.5px; padding:7px 9px; border-radius:6px;
   border:1px solid var(--line); background:#fff; color:var(--ink);
   font-family:'Pretendard Variable',sans-serif; margin-bottom:10px;
 }
@@ -357,8 +384,8 @@ button:active{opacity:.75;}
   background:#fff; border:1px solid var(--line); border-radius:7px;
   padding:10px 12px; margin-bottom:8px;
 }
-.journal-past-date{font-size:10.5px; font-weight:700; color:var(--sage); font-family:'IBM Plex Mono',monospace; margin-bottom:4px;}
-.journal-past-body{font-size:12px; color:var(--ink); white-space:pre-wrap; line-height:1.55;}
+.journal-past-date{font-size:11px; font-weight:700; color:var(--sage); font-family:'IBM Plex Mono',monospace; margin-bottom:4px;}
+.journal-past-body{font-size:14px; color:var(--ink); white-space:pre-wrap; line-height:1.55;}
 .notes-float-body{
   overflow-y:auto; padding:12px 14px;
 }
@@ -376,7 +403,7 @@ button:active{opacity:.75;}
 .add-note-form{padding-top:10px;}
 .add-note-form input, .add-note-form textarea{
   width:100%; background:#fff; border:1px solid var(--line); border-radius:6px;
-  padding:9px 11px; font-family:'Pretendard Variable',sans-serif; font-size:13px;
+  padding:9px 11px; font-family:'Pretendard Variable',sans-serif; font-size:14px;
   color:var(--ink); margin-bottom:8px;
 }
 .add-note-form textarea{min-height:110px; resize:vertical;}
@@ -386,15 +413,15 @@ button:active{opacity:.75;}
   background:var(--card-back); border:1px solid var(--line); border-radius:7px;
   padding:11px 13px; margin-top:10px; position:relative;
 }
-.note-title{font-size:12.5px; font-weight:700; color:var(--coral); padding-right:20px;}
-.note-body{font-size:12px; color:var(--ink); margin-top:5px; line-height:1.6; white-space:pre-wrap;}
-.note-date{font-size:10px; color:var(--muted-2); margin-top:6px; font-family:'IBM Plex Mono',monospace;}
+.note-title{font-size:14.5px; font-weight:700; color:var(--coral); padding-right:20px;}
+.note-body{font-size:14px; color:var(--ink); margin-top:5px; line-height:1.6; white-space:pre-wrap;}
+.note-date{font-size:11px; color:var(--muted-2); margin-top:6px; font-family:'IBM Plex Mono',monospace;}
 .note-del{
   position:absolute; top:9px; right:10px; cursor:pointer; color:var(--muted-2);
   font-size:14px; line-height:1; background:none; border:none; padding:2px;
 }
 .note-del:hover{color:var(--coral);}
-.notes-empty{font-size:12px; color:var(--muted-2); text-align:center; padding:14px 0;}
+.notes-empty{font-size:13.5px; color:var(--muted-2); text-align:center; padding:14px 0;}
 
 .compare-panel{
   margin-top:14px; background:#F3EEE4; border:1px solid var(--line);
@@ -447,6 +474,7 @@ button:active{opacity:.75;}
   <div class="mode-tabs">
     <div class="mode-tab active" id="tabPattern">📖 패턴 연습</div>
     <div class="mode-tab" id="tabFreeWriting">🎤 스피킹 드릴</div>
+    <div class="mode-tab" id="tabStruct">🔀 구조 훈련</div>
     <div class="mode-tab" id="tabDq">💬 데일리Q</div>
     <div class="mode-tab" id="tabCn">📝 교정노트</div>
   </div>
@@ -745,6 +773,31 @@ button:active{opacity:.75;}
     <div id="cnList"></div>
   </div>
 
+  <!-- ===== 구조 훈련 MODE (한국어 뜻 보고 영어 어순 맞추기) ===== -->
+  <div id="structModeView" class="hidden">
+    <div class="ih-hint" style="margin-bottom:10px;">한국어 뜻을 보고, 섞인 영어 단어를 순서대로 눌러서 문장을 완성해보세요. 패턴 예문으로 영어식 어순 감각을 훈련하는 모드예요.</div>
+    <div class="unit-bar" id="structFilterBar"></div>
+    <div class="card" style="margin-top:12px;">
+      <div class="card-top">
+        <span class="card-num">🔀</span>
+        <span class="card-count" id="structProgress">세션 0/0</span>
+      </div>
+      <div class="pattern-kr" style="font-size:16px; margin-bottom:14px;" id="structKr">단원을 선택하면 문장이 나와요</div>
+      <div class="struct-answer" id="structAnswer"></div>
+      <div class="struct-pool" id="structPool"></div>
+      <div class="struct-result hidden" id="structResult"></div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn-ghost" id="structUndo">↩ 되돌리기</button>
+        <button class="btn-check" id="structCheck">✅ 정답 확인</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" id="structListen">🔊 듣기</button>
+        <button class="btn-ghost" id="structReveal">👁 정답 보기</button>
+        <button class="btn-primary" id="structNext">다음 문장 →</button>
+      </div>
+    </div>
+  </div>
+
   <button class="notes-fab" id="notesFab" title="메타인지 노트">📝<span class="fab-badge" id="fabBadge">0</span></button>
 
   <div class="notes-float" id="notesFloat">
@@ -809,7 +862,7 @@ button:active{opacity:.75;}
       </div>
       <div id="journalView" class="hidden">
         <div class="ih-hint" style="margin-bottom:8px;">오늘 배운 표현·문장을 자유롭게 모아두세요. 붙여넣고 💾 저장 누르면 바로 아래에 쌓여요!</div>
-        <textarea id="journalToday" placeholder="오늘 배운 것 자유롭게 메모..." style="width:100%;min-height:220px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-family:'Pretendard Variable',sans-serif;font-size:12.5px;resize:vertical;background:#fff;color:var(--ink);"></textarea>
+        <textarea id="journalToday" placeholder="오늘 배운 것 자유롭게 메모..." style="width:100%;min-height:220px;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-family:'Pretendard Variable',sans-serif;font-size:14px;resize:vertical;background:#fff;color:var(--ink);"></textarea>
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn-primary" id="btnJournalSave">💾 저장</button>
         </div>
@@ -2837,6 +2890,7 @@ function setMode(newMode){
   if(mode==='unit' || mode==='giu') lastPatternMode = mode;
   document.getElementById('tabPattern').classList.toggle('active', mode==='unit'||mode==='giu');
   document.getElementById('tabFreeWriting').classList.toggle('active', mode==='freewriting');
+  document.getElementById('tabStruct').classList.toggle('active', mode==='struct');
   document.getElementById('tabDq').classList.toggle('active', mode==='dq');
   document.getElementById('tabCn').classList.toggle('active', mode==='cn');
   document.getElementById('patternSubBar').classList.toggle('hidden', !(mode==='unit'||mode==='giu'));
@@ -2845,12 +2899,15 @@ function setMode(newMode){
   document.getElementById('unitModeView').classList.toggle('hidden', mode!=='unit');
   document.getElementById('giuModeView').classList.toggle('hidden', mode!=='giu');
   document.getElementById('freeWritingModeView').classList.toggle('hidden', mode!=='freewriting');
+  document.getElementById('structModeView').classList.toggle('hidden', mode!=='struct');
   document.getElementById('dqModeView').classList.toggle('hidden', mode!=='dq');
   document.getElementById('cnModeView').classList.toggle('hidden', mode!=='cn');
   document.getElementById('subtitleText').textContent = mode==='unit'
     ? "교재 단원 그대로 · 1-3과부터 순서대로 영작 연습"
     : mode==='giu'
     ? "Grammar in Use Unit 1-50 · 예문 암기 + 내 문장"
+    : mode==='struct'
+    ? "한국어 뜻 보고 영어 단어 순서 맞추기 · 어순 감각 훈련"
     : mode==='dq'
     ? "컬컴 Daily Question · 질문 듣기 → 내 답 먼저 → 모범답안 비교"
     : mode==='cn'
@@ -2859,6 +2916,7 @@ function setMode(newMode){
   if(mode==='unit') renderUnitDeck();
   else if(mode==='giu') renderGiu();
   else if(mode==='freewriting') renderFreeWriting();
+  else if(mode==='struct') renderStruct();
   else if(mode==='dq') renderDqDeck();
   else if(mode==='cn') renderCn();
 }
@@ -2866,8 +2924,162 @@ document.getElementById('tabPattern').addEventListener('click', ()=>setMode(last
 document.getElementById('subChipCulcom').addEventListener('click', ()=>setMode('unit'));
 document.getElementById('subChipGiu').addEventListener('click', ()=>setMode('giu'));
 document.getElementById('tabFreeWriting').addEventListener('click', ()=>setMode('freewriting'));
+document.getElementById('tabStruct').addEventListener('click', ()=>setMode('struct'));
 document.getElementById('tabDq').addEventListener('click', ()=>setMode('dq'));
 document.getElementById('tabCn').addEventListener('click', ()=>setMode('cn'));
+
+// ---- 구조 훈련 (Structure Trainer): 한국어 뜻 보고 영어 어순 맞추기 ----
+let structPool = [];
+let structFilter = 'all';
+let structIdx = -1;
+let structOrderTokens = [];
+let structShuffled = [];
+let structAnswerTokens = [];
+let structSessionCorrect = 0;
+let structSessionTotal = 0;
+
+function buildStructPool(){
+  const list = [];
+  PATTERNS.forEach(p=>{
+    if(structFilter!=='all'){
+      const u = UNITS.find(u=>u.id===structFilter);
+      if(!u || !u.patternIds.includes(p.id)) return;
+    }
+    (p.ex||[]).forEach(e=>{
+      if(e.en && e.kr) list.push({en:e.en, kr:e.kr});
+    });
+  });
+  structPool = list;
+}
+
+function structShuffleArr(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function structPickNext(){
+  const krEl = document.getElementById('structKr');
+  if(structPool.length===0){
+    krEl.textContent = '이 범위엔 예문이 없어요. 다른 단원을 선택해보세요.';
+    document.getElementById('structAnswer').innerHTML='';
+    document.getElementById('structPool').innerHTML='';
+    document.getElementById('structResult').classList.add('hidden');
+    return;
+  }
+  let next = Math.floor(Math.random()*structPool.length);
+  if(structPool.length>1){
+    while(next===structIdx) next = Math.floor(Math.random()*structPool.length);
+  }
+  structIdx = next;
+  const item = structPool[structIdx];
+  structOrderTokens = item.en.trim().split(/\s+/);
+  structAnswerTokens = [];
+  structShuffled = structShuffleArr(structOrderTokens.map((t,i)=>({t,i})));
+  krEl.textContent = item.kr;
+  const resEl = document.getElementById('structResult');
+  resEl.classList.add('hidden');
+  resEl.textContent = '';
+  renderStructBoards();
+}
+
+function renderStructBoards(){
+  const poolEl = document.getElementById('structPool');
+  const ansEl = document.getElementById('structAnswer');
+  poolEl.innerHTML = '';
+  ansEl.innerHTML = '';
+  structShuffled.forEach(tok=>{
+    if(tok.used) return;
+    const chip = document.createElement('span');
+    chip.className = 'struct-chip';
+    chip.textContent = tok.t;
+    chip.onclick = ()=>{
+      tok.used = true;
+      structAnswerTokens.push(tok);
+      renderStructBoards();
+    };
+    poolEl.appendChild(chip);
+  });
+  structAnswerTokens.forEach(tok=>{
+    const chip = document.createElement('span');
+    chip.className = 'struct-chip';
+    chip.textContent = tok.t;
+    chip.onclick = ()=>{
+      tok.used = false;
+      structAnswerTokens = structAnswerTokens.filter(x=>x!==tok);
+      renderStructBoards();
+    };
+    ansEl.appendChild(chip);
+  });
+}
+
+document.getElementById('structUndo').addEventListener('click', ()=>{
+  if(structAnswerTokens.length===0) return;
+  const last = structAnswerTokens.pop();
+  last.used = false;
+  renderStructBoards();
+});
+
+document.getElementById('structCheck').addEventListener('click', ()=>{
+  if(structOrderTokens.length===0) return;
+  const userStr = structAnswerTokens.map(t=>t.t).join(' ');
+  const correctStr = structOrderTokens.join(' ');
+  structSessionTotal++;
+  const resEl = document.getElementById('structResult');
+  resEl.classList.remove('hidden');
+  if(userStr === correctStr && structAnswerTokens.length===structOrderTokens.length){
+    structSessionCorrect++;
+    resEl.className = 'struct-result correct';
+    resEl.textContent = '✅ 정확해요! 이 어순이 자연스러운 영어 구조예요.';
+    document.querySelectorAll('#structAnswer .struct-chip').forEach(el=>el.classList.remove('wrong'));
+  } else {
+    resEl.className = 'struct-result incorrect';
+    resEl.textContent = `❌ 아직이에요. 정답: ${correctStr}`;
+    document.querySelectorAll('#structAnswer .struct-chip').forEach(el=>el.classList.add('wrong'));
+  }
+  document.getElementById('structProgress').textContent = `세션 ${structSessionCorrect}/${structSessionTotal}`;
+});
+
+document.getElementById('structReveal').addEventListener('click', ()=>{
+  if(structOrderTokens.length===0) return;
+  const resEl = document.getElementById('structResult');
+  resEl.classList.remove('hidden');
+  resEl.className = 'struct-result incorrect';
+  resEl.textContent = `정답: ${structOrderTokens.join(' ')}`;
+});
+
+document.getElementById('structListen').addEventListener('click', ()=>{
+  if(structOrderTokens.length>0) speakText(structOrderTokens.join(' '));
+});
+
+document.getElementById('structNext').addEventListener('click', structPickNext);
+
+function renderStructFilterBar(){
+  const bar = document.getElementById('structFilterBar');
+  bar.innerHTML = '';
+  const allChip = document.createElement('div');
+  allChip.className = 'unit-chip' + (structFilter==='all' ? ' active' : '');
+  allChip.textContent = '전체';
+  allChip.onclick = ()=>{ structFilter='all'; renderStructFilterBar(); buildStructPool(); structIdx=-1; structPickNext(); };
+  bar.appendChild(allChip);
+  UNITS.forEach(u=>{
+    const chip = document.createElement('div');
+    chip.className = 'unit-chip' + (structFilter===u.id ? ' active' : '');
+    chip.textContent = u.label;
+    chip.onclick = ()=>{ structFilter=u.id; renderStructFilterBar(); buildStructPool(); structIdx=-1; structPickNext(); };
+    bar.appendChild(chip);
+  });
+}
+
+function renderStruct(){
+  renderStructFilterBar();
+  buildStructPool();
+  structPickNext();
+}
+
 
 // ---- STATS & GRID (공통) ----
 function renderStats(){
@@ -2925,10 +3137,12 @@ document.getElementById('cpHead').addEventListener('click', ()=>{
 });
 
 document.getElementById('notesFab').addEventListener('click', ()=>{
-  document.getElementById('notesFloat').classList.toggle('open');
+  const isOpen = document.getElementById('notesFloat').classList.toggle('open');
+  document.body.classList.toggle('notes-open', isOpen);
 });
 document.getElementById('notesClose').addEventListener('click', ()=>{
   document.getElementById('notesFloat').classList.remove('open');
+  document.body.classList.remove('notes-open');
 });
 
 const UNIT_TAG_OPTIONS = [
